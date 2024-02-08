@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Robotics">
+    <meta property="article:published_time" content="2021-05-20">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >A USB-controlled Furby</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">20/05/2021</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/furby.html">Furby</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>The original <a class="reference external" href="https://en.wikipedia.org/wiki/Furby">Furby</a> from Tiger
+Electronics was a huge phenomenon at the end of the 1990s. In this article,
+we are going to replace a Furby's electronics to transform it into
+a USB-controlled puppet.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210506_193410_fixed.jpg"><img alt="The blue-eyed brown-bellied cute horror" src="https://blog.chapelierfou.org/images/IMG_20210506_193410_fixed-small.jpg" /></a>
+<p class="caption">The blue-eyed brown-bellied cute horror</p>
+</div>
+<p>The little beaked Mogwais looked quite alive and faked learning
+processes pretty well. As electronic talking toys were still a novelty back
+then, its capacities were grossly over-estimated, especially among children.
+For instance, the microphone is limited to sensing the noise level to talk
+back when you talk to it, it is actually unable to differentiate noises,
+let alone interpret speech.</p>
+<p>In reality, the technology was already old. As the
+<a class="reference external" href="https://patents.google.com/patent/US6544098B1/en">patent</a> indicates,
+Furbys were built around a 8-bit
+<a class="reference external" href="https://ia803100.us.archive.org/7/items/SPC81A/SPC81A.pdf">SunPlus SPC81A</a>
+microcontroller, basically a crippled 6502 processor with 128 bytes of RAM
+(yes, bytes). The original
+<a class="reference external" href="https://en.wikipedia.org/wiki/MOS_Technology_6502">MOS Technology 6502 processor</a>
+was introduced in 1975 and became pretty popular because it was extremely
+cheap. For instance, the Atari 2600 and Apple II were both built around
+modified 6502 processors. It was a strong influence in the design of RISC
+architectures, in particular ARM processors. The voice synthesis is handled by
+a <a class="reference external" href="https://www.ti.com/lit/ml/spss011d/spss011d.pdf">Texas Instruments TSP50C04</a>
+running an
+<a class="reference external" href="https://en.wikipedia.org/wiki/Linear_predictive_coding">LPC (Linear Predictive Coding)</a>
+codec which imitates the human vocal tract to reproduce audio, a technology
+that became common in the 1980s for speaking toys. This sounds a bit ironic as it
+seems that the SunPlus SPC81A, here used as main processor, was itself designed
+as a speech and melody synthesizer.</p>
+<p>As widely-available customer devices with audio capabilities, Furbys have been
+quite popular in the circuit-bending community. You should definitely have a
+look at the nightmarish
+<a class="reference external" href="https://www.vice.com/en/article/437a7q/we-asked-the-creator-of-the-furby-organ-why">Furby Organ built by Sam Battle a.k.a. Look Mum No Computer</a>.</p>
+<p>Here, we are not going to focus on the audio part, but on the mechanical part.</p>
+<!--  -->
+<blockquote>
+Why work on a Furby? Well, in a bubbly world where lots of people just
+want to throw their beans at any form of
+<a class="reference external" href="https://en.wikipedia.org/wiki/Beanie_Babies">Beanie Babies</a>
+available to magically increase their stash (Get it? Because of magic beans!),
+it's good to keep it real and tinker on other things.
+But I digress, the point is that we are operating a Furby here,
+not a Beanie Baby.</blockquote>
+<div class="section" id="disassembly">
+<h2>Disassembly</h2>
+<p>We'll start by skinning the Furby. The fur is placed like on a sock puppet
+and attached around the base with a clamp. To access it, you need to unstitch
+a few threads at the back of the base. Then you can cut the clamp and start
+cautiously skinning the Furby from bottom to top. The face plate is glued to
+the body and is a bit challenging to remove. Finally, there are also stitches
+to remove on the ears.</p>
+<p>Under the fur, the Furby has a carapace made of two pieces on each side. After
+unscrewing them, the Furby reveals its internal mechanism.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210418_182028.jpg"><img alt="The original Furby with its fur and carapace removed" src="https://blog.chapelierfou.org/images/IMG_20210418_182028-small.jpg" /></a>
+<p class="caption">The original Furby with its fur and carapace removed</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210418_182210_multi.jpg"><img alt="360-degree view of the Furby with its fur and carapace removed" src="https://blog.chapelierfou.org/images/IMG_20210418_182210_multi-small.jpg" /></a>
+<p class="caption">360-degree view of the Furby with its fur and carapace removed</p>
+</div>
+<p>The entire set of movements of the Furby, opening and closing its eyes and
+mouth, moving its ears, and making it bend forward, is controlled by a single
+DC motor. The internal mechanism is indeed quite ingenious and works a bit
+like an old-fashioned automaton: a camshaft encodes the different gestures
+one after the other, and various sequences of gestures can be achived by
+simply rotating the camshaft back and forth.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210418_185201.jpg"><img alt="Removing the front speaker and touch sensor" src="https://blog.chapelierfou.org/images/IMG_20210418_185201-small.jpg" /></a>
+<p class="caption">Removing the front speaker and touch sensor</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210418_190555.jpg"><img alt="The disassembled Furby" src="https://blog.chapelierfou.org/images/IMG_20210418_190555-small.jpg" /></a>
+<p class="caption">The disassembled Furby</p>
+</div>
+<p>The exact position of the shaft is tracked with some sort of custom-made
+rotation sensor, which works similarly to sensors you could find in
+<a class="reference external" href="https://www.explainthatstuff.com/computermouse.html#how-ball-works">ball mouses</a>.
+An infrared LED, positioned on the main board, emits light in a vertical tunnel
+going through a perforated gear. On the top side of the tunnel, a tiny
+photodetector is illuminated or not depending on the gear position. While
+the motor runs, the traveled angle can be measured by counting the
+illuminations. The initial position is known thanks to a mechanical interruptor
+closed when the shaft is home, which is not extremely precise but sufficient
+for the purpose.</p>
+</div>
+<div class="section" id="replacing-electronics">
+<h2>Replacing electronics</h2>
+<p>We'll remove the original electronic board and replace it with an
+Arduino Pro Micro fitted in the battery compartment. We'll also add a H-bridge
+to drive the motor and a amplifier to get some sound to the speaker.</p>
+<p>We'll use:</p>
+<ul class="simple">
+<li><a class="reference external" href="https://www.sparkfun.com/products/12640">Arduino Pro Micro 5V 16MHz</a></li>
+<li><a class="reference external" href="https://www.sparkfun.com/products/14451">H-bridge Motor Driver (TB6612FNG)</a></li>
+<li><a class="reference external" href="https://www.ebay.com/sch/i.html?_nkw=lm386+module">Amplifier module (LM386)</a></li>
+<li><a class="reference external" href="https://www.ebay.com/sch/i.html?_nkw=thin+speaker+40mm+8ohm">Thin 40mm 8Ω speaker</a></li>
+<li>Micro USB and jack cables</li>
+<li>Infrared LED, resistors, capacitor (&gt; 100µF)</li>
+<li>Dupont wires and some other stuff</li>
+</ul>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/schema_furby.png"><img alt="General schematic of connections" src="https://blog.chapelierfou.org/images/schema_furby.png" /></a>
+<p class="caption">General schematic of connections</p>
+</div>
+<p>Note everything is powered through the USB 5V power via the Arduino Vcc pin.
+No batteries needed!</p>
+<p>The home switch pulls the corresponding Arduino pin down to ground,
+we'll therefore activate the internal pull-up resistor for the pin.
+The tongue, touch, and even reset switches could also be connected
+the same way. The two light sensors, the internal one for the rotation sensor
+and the external one, are both connected as voltage dividers with 10KΩ
+resistors: the higher the voltage around the resistor, the stronger the light.</p>
+<p>I replaced the rotation sensor 5mm LED with a similar infrared one (540nm). It
+requires a current under 50mA and introduces a voltage drop of around 1.3V,
+therefore we should couple it with a resistor above 74Ω. In pratice, I coupled
+it with a 82Ω resistor and measured that in real conditions  (actual Vcc is
+less than 5V, etc) the resulting current is between 30mA and 40mA, which is
+actually close to the maximum the Arduino can output through a pin.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210501_124510.jpg"><img alt="The rotation sensor LED replaced with a new one" src="https://blog.chapelierfou.org/images/IMG_20210501_124510-small.jpg" /></a>
+<p class="caption">The rotation sensor LED replaced with a new one</p>
+</div>
+<p>Powering a motor from USB is a bit trickier than from a LiPo battery. Indeed,
+whereas the battery can temporarily provide a high current when the motor
+starts or stalls, the available current on USB 5V power is limited to only
+<a class="reference external" href="https://en.wikipedia.org/wiki/USB#Power">900mA for USB 3.0 and 500mA for USB 2.0</a>.
+This is an issue as the Arduino is powered from the
+same source, so operating the motor tends to drop the voltage and reboot the
+Arduino. Therefore, we need to put a decoupling capacitor on the 5V rail to
+prevent drops. I chose a big 220μF one and everything works fine. Decoupling
+capacitors are like magic.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210501_124341.jpg"><img alt="Testing the connections" src="https://blog.chapelierfou.org/images/IMG_20210501_124341-small.jpg" /></a>
+<p class="caption">Testing the connections</p>
+</div>
+<p>Controlling the Furby's movement is fine but it's better to have it talking too.
+The default speaker is a cheap 40mm 32Ω headphone speaker, whose impedence is
+too high for the use case. It is basically impossible to drive it at loud enough
+volumes without distorting like crazy with a good old LM386 amplifier module,
+therefore I replaced it with a better-suited 40mm 8Ω speaker.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210505_223510.jpg"><img alt="Motor connection and power distribution with decoupling capacitor on the left side" src="https://blog.chapelierfou.org/images/IMG_20210505_223510-small.jpg" /></a>
+<p class="caption">Motor connection and power distribution with decoupling capacitor on the left side</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210504_195554.jpg"><img alt="Both light sensors connected on the right side" src="https://blog.chapelierfou.org/images/IMG_20210504_195554-small.jpg" /></a>
+<p class="caption">Both light sensors connected on the right side</p>
+</div>
+<p>Everything fits in the battery compartment once the battery contactors have
+been removed and the separators have been cut down. It's a tight fit, but
+it wasn't even necessary to solder the cables to make some space by removing
+the Dupont connectors.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210506_191153.jpg"><img alt="Everything fits in the repurposed battery compartment" src="https://blog.chapelierfou.org/images/IMG_20210506_191153-small.jpg" /></a>
+<p class="caption">Everything fits in the repurposed battery compartment</p>
+</div>
+<p>I cut a hole on the side for both cables (USB and Jack) to get out.
+The carapace needs to be cut at the same spot, with some leeway since the
+base moves independently from the carapace when the furby bends forward. We
+can finally put the fur back on.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210506_191759.jpg"><img alt="The Furby put together again without its fur" src="https://blog.chapelierfou.org/images/IMG_20210506_191759-small.jpg" /></a>
+<p class="caption">The Furby put together again without its fur</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210506_192814.jpg"><img alt="The Furby with its fur back on" src="https://blog.chapelierfou.org/images/IMG_20210506_192814-small.jpg" /></a>
+<p class="caption">The Furby with its fur back on</p>
+</div>
+<p>It's now time to program the modified Furby!</p>
+</div>
+<div class="section" id="programming">
+<h2>Programming</h2>
+<p>Motor control is pretty straightforward. The motor is powered via a H-bridge
+controlled with 4 pins: standby, forward, reverse, and PWM. Standby must be
+pulled high for the H-bridge to be powered, forward and reverse control
+polarity, while PWM controls the duty cycle of motor power.</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">begin</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">MOTOR_PWM_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">MOTOR_STANDBY_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">MOTOR_FORWARD_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">MOTOR_REVERSE_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">MOTOR_STANDBY_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">HIGH</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">motor</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// value 0 means brake</span>
+<span class="w">    </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">MOTOR_FORWARD_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">HIGH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">LOW</span><span class="p">);</span>
+<span class="w">    </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">MOTOR_REVERSE_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">HIGH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">LOW</span><span class="p">);</span>
+<span class="w">    </span><span class="n">analogWrite</span><span class="p">(</span><span class="n">MOTOR_PWM_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">constrain</span><span class="p">(</span><span class="n">abs</span><span class="p">(</span><span class="n">value</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">));</span>
+<span class="p">}</span>
+</pre></div>
+<p>Homing the camshaft is achieved by simply rotating it until the home sensor pin
+is triggered. The home sensor switch connects the pin pulled up to ground,
+therefore, it pulls the pin low when triggered.</p>
+<div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">begin</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">[...]</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">HOME_SENSOR_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">INPUT_PULLUP</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">home</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">motor</span><span class="p">(</span><span class="n">MOTOR_POWER</span><span class="p">);</span>
+<span class="w">    </span><span class="k">while</span><span class="p">(</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">HOME_SENSOR_PIN</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">HIGH</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">    </span><span class="n">motor</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+<p>To animate the Furby, we count the steps thanks to the internal light sensor:
+we light the LED, measure the illumination and count one step each time the
+illumination changes.</p>
+<p>I measured that a full revolution of the camshaft corresponds to 208
+illuminations of the rotation sensor. I mean, why not. Since we will count a
+step for each change of illumination state, the full revolution will correspond
+to 416 steps.</p>
+<p>Of course, we need some hysteresis to prevent counting each illumination
+multiple times (The issue could easily happen if the motor stops on the
+threshold). The parity of the counter allows keeping track of the illumination
+state: even when dark, odd when light.</p>
+<div class="highlight"><pre><span></span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">MOTOR_STEPS</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">416</span><span class="p">;</span><span class="w"> </span><span class="c1">// full revolution, as measured on my Furby</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">MOTOR_FORWARD</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">MOTOR_BACKWARD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">MOTOR_IDLE</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">currentStep</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">             </span><span class="c1">// Rotation step counter</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">motorDirection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MOTOR_IDLE</span><span class="p">;</span><span class="w"> </span><span class="c1">// We will set this to the current direction</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">begin</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">[...]</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">LED_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">update</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Count steps using the internal light sensor</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">motorDirection</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">MOTOR_IDLE</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">LED_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">HIGH</span><span class="p">);</span><span class="w"> </span><span class="c1">// turn the LED on</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">analogRead</span><span class="p">(</span><span class="n">INT_LIGHT_SENSOR_PIN</span><span class="p">);</span><span class="w"> </span><span class="c1">// measure</span>
+<span class="w">        </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">LED_PIN</span><span class="p">,</span><span class="w"> </span><span class="n">LOW</span><span class="p">);</span><span class="w"> </span><span class="c1">// turn the LED off</span>
+
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">parity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">currentStep</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">        </span><span class="k">if</span><span class="p">((</span><span class="n">parity</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">INT_LIGHT_SENSOR_HIGH_THRESHOLD</span><span class="p">)</span><span class="w"> </span><span class="o">||</span>
+<span class="w">           </span><span class="p">(</span><span class="n">parity</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">INT_LIGHT_SENSOR_LOW_THRESHOLD</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">currentStep</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">MOTOR_STEPS</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">currentStep</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">motorDirection</span><span class="p">)</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">MOTOR_STEPS</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>We can now track the current position. In order to move to a target postion,
+we rotate the motor forwards or backwards according to the difference between
+positions (computed like as a difference between angles), until the difference
+becomes small enough. As the position gets closer to the target position, the
+motor speed is reduced to help preventing an overshoot.</p>
+<p>The trick is that the motor direction can't be changed abruptly, as we would
+lose track of the current position. The motor does indeed not reverse
+immediately, so we wouldn't know how to count the next steps. Therefore, we
+have to stop the motor, wait for it to actually stop, then reverse it.</p>
+<div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">targetStep</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="c1">// Target rotation step</span>
+<span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">motorLastTime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">distance</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">to</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">((</span><span class="n">currentStep</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">to</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">MOTOR_STEPS</span><span class="o">/</span><span class="mi">2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">MOTOR_STEPS</span><span class="p">)</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">MOTOR_STEPS</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">MOTOR_STEPS</span><span class="o">/</span><span class="mi">2</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">update</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Count steps using the internal light sensor</span>
+<span class="w">    </span><span class="p">[...]</span>
+
+<span class="w">    </span><span class="c1">// Compare current position with target</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">dist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">distance</span><span class="p">(</span><span class="n">targetStep</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dist</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">MOTOR_FORWARD</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">MOTOR_BACKWARD</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">abs</span><span class="p">(</span><span class="n">dist</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">MOTOR_STEPS_TOLERANCE</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">motorDirection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">MOTOR_IDLE</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">motorDirection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">dir</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Move to target</span>
+<span class="w">        </span><span class="n">motorDirection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dir</span><span class="p">;</span>
+<span class="w">        </span><span class="n">motorLastTime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">millis</span><span class="p">();</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">power</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">map</span><span class="p">(</span><span class="n">constrain</span><span class="p">(</span><span class="n">abs</span><span class="p">(</span><span class="n">dist</span><span class="p">),</span>
+<span class="w">                        </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">MOTOR_STEPS_POWER_MAX</span><span class="p">),</span>
+<span class="w">                        </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">MOTOR_STEPS_POWER_MAX</span><span class="p">,</span><span class="w"> </span><span class="n">MOTOR_POWER_MIN</span><span class="p">,</span><span class="w"> </span><span class="n">MOTOR_POWER_MAX</span><span class="p">);</span>
+<span class="w">        </span><span class="n">motor</span><span class="p">(</span><span class="n">motorDirection</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">power</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Target is reached or motor is in the wrong direction</span>
+<span class="w">        </span><span class="n">motor</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">        </span><span class="c1">// The motor does not stop instantaneously</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">millis</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">motorLastTime</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">MOTOR_IDLE_DELAY</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">motorDirection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MOTOR_IDLE</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>The Furby features an external light sensor on its forehead. I connected it
+just like the internal light sensor, so we can retrieve a value for the
+ambient light level as seen by the Furby.</p>
+<div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">light</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">analogRead</span><span class="p">(</span><span class="n">EXT_LIGHT_SENSOR_PIN</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">map</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1023</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+<p>The last step is to actually implement the setup and loop function to read
+commands from serial, which will allow to control the Furby.</p>
+<div class="highlight"><pre><span></span><span class="n">String</span><span class="w"> </span><span class="n">inputString</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">;</span>
+<span class="kt">bool</span><span class="w"> </span><span class="n">targetReached</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Serial</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="mi">9600</span><span class="p">);</span>
+<span class="w">    </span><span class="n">furby</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span>
+<span class="w">    </span><span class="n">furby</span><span class="p">.</span><span class="n">home</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">     </span><span class="c1">// Read commands on serial</span>
+<span class="w">    </span><span class="k">while</span><span class="p">(</span><span class="n">Serial</span><span class="p">.</span><span class="n">available</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">char</span><span class="w"> </span><span class="n">chr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="p">)</span><span class="n">Serial</span><span class="p">.</span><span class="n">read</span><span class="p">();</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">chr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">&#39;\n&#39;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">chr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">&#39;\r&#39;</span><span class="p">)</span>
+<span class="w">                </span><span class="n">inputString</span><span class="o">+=</span><span class="w"> </span><span class="n">chr</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="p">(</span><span class="n">inputString</span><span class="p">.</span><span class="n">length</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// Parse command</span>
+<span class="w">            </span><span class="kt">char</span><span class="w"> </span><span class="n">cmd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">toupper</span><span class="p">(</span><span class="n">inputString</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">param</span><span class="p">;</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">pos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">            </span><span class="k">while</span><span class="p">(</span><span class="n">pos</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">inputString</span><span class="p">.</span><span class="n">length</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">inputString</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39; &#39;</span><span class="p">)</span><span class="w"> </span><span class="o">++</span><span class="n">pos</span><span class="p">;</span>
+<span class="w">            </span><span class="n">param</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inputString</span><span class="p">.</span><span class="n">substring</span><span class="p">(</span><span class="n">pos</span><span class="p">);</span>
+
+<span class="w">            </span><span class="c1">// Execute command</span>
+<span class="w">            </span><span class="k">switch</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">case</span><span class="w"> </span><span class="sc">&#39;H&#39;</span><span class="p">:</span>
+<span class="w">                    </span><span class="n">furby</span><span class="p">.</span><span class="n">home</span><span class="p">();</span>
+<span class="w">                    </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">&quot;H&quot;</span><span class="p">);</span>
+<span class="w">                    </span><span class="k">break</span><span class="p">;</span>
+<span class="w">                </span><span class="k">case</span><span class="w"> </span><span class="sc">&#39;M&#39;</span><span class="p">:</span>
+<span class="w">                    </span><span class="n">furby</span><span class="p">.</span><span class="n">target</span><span class="p">(</span><span class="n">param</span><span class="p">.</span><span class="n">toInt</span><span class="p">());</span>
+<span class="w">                    </span><span class="n">targetReached</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">                    </span><span class="k">break</span><span class="p">;</span>
+<span class="w">                </span><span class="k">case</span><span class="w"> </span><span class="sc">&#39;L&#39;</span><span class="p">:</span>
+<span class="w">                    </span><span class="n">Serial</span><span class="p">.</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;L &quot;</span><span class="p">);</span>
+<span class="w">                    </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="n">furby</span><span class="p">.</span><span class="n">light</span><span class="p">());</span>
+<span class="w">                    </span><span class="k">break</span><span class="p">;</span>
+<span class="w">                </span><span class="k">default</span><span class="o">:</span>
+<span class="w">                    </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">&quot;E&quot;</span><span class="p">);</span>
+<span class="w">                    </span><span class="k">break</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">            </span><span class="n">inputString</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">furby</span><span class="p">.</span><span class="n">update</span><span class="p">();</span>
+
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">targetReached</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">furby</span><span class="p">.</span><span class="n">reached</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">targetReached</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Serial</span><span class="p">.</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;M &quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="n">furby</span><span class="p">.</span><span class="n">target</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>On the computer, we can now easily control the Furby via the USB serial.</p>
+<p>Here is an example class in Python:</p>
+<div class="highlight"><pre><span></span><span class="c1"># control.py</span>
+
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">serial</span>
+<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+
+<span class="n">TIMEOUT</span> <span class="o">=</span> <span class="mi">5</span>
+
+<span class="k">class</span> <span class="nc">Move</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="n">EARS_UP</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">EARS_UP_MOUTH_OPEN</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="n">EYES_CLOSED</span> <span class="o">=</span> <span class="mi">130</span>
+    <span class="n">EARS_DOWN_EYES_CLOSED</span> <span class="o">=</span> <span class="mi">180</span>
+    <span class="n">EARS_DOWN</span> <span class="o">=</span> <span class="mi">300</span>
+    <span class="n">EARS_DOWN_MOUTH_OPEN</span> <span class="o">=</span> <span class="mi">350</span>
+
+
+<span class="k">class</span> <span class="nc">Control</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;/dev/ttyACM0&#39;</span><span class="p">,</span> <span class="n">baudrate</span><span class="o">=</span><span class="mi">9600</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">serial</span> <span class="o">=</span> <span class="n">serial</span><span class="o">.</span><span class="n">Serial</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">baudrate</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">TIMEOUT</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">serial</span><span class="o">.</span><span class="n">write</span><span class="p">((</span><span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">serial</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> </span><span class="si">{:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">arg</span><span class="p">)))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+        <span class="n">ans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ans</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&quot;Furby: command timeout&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">ans</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">cmd</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Furby: command error&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ansarg</span> <span class="o">=</span> <span class="n">ans</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">ansarg</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ansarg</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">arg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">executor</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">arg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">light</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">light</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="s1">&#39;L&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">light</span> <span class="k">if</span> <span class="n">light</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">home</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="s1">&#39;M&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">target</span><span class="p">))</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+</pre></div>
+<p>And here is how to use it:</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="kn">from</span> <span class="nn">control</span> <span class="kn">import</span> <span class="n">Control</span><span class="p">,</span> <span class="n">Move</span>
+
+<span class="n">control</span> <span class="o">=</span> <span class="n">Control</span><span class="p">(</span><span class="s1">&#39;/dev/ttyACM0&#39;</span><span class="p">)</span>
+<span class="n">control</span><span class="o">.</span><span class="n">home</span><span class="p">()</span>
+<span class="n">control</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">Move</span><span class="o">.</span><span class="n">EARS_UP</span><span class="p">)</span>
+<span class="n">control</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">Move</span><span class="o">.</span><span class="n">EARS_UP_MOUTH_OPEN</span><span class="p">)</span>
+<span class="n">control</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">Move</span><span class="o">.</span><span class="n">EARS_UP</span><span class="p">)</span>
+<span class="n">control</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">Move</span><span class="o">.</span><span class="n">EARS_UP_MOUTH_OPEN</span><span class="p">)</span>
+<span class="n">control</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">Move</span><span class="o">.</span><span class="n">EYES_CLOSED</span><span class="p">)</span>
+</pre></div>
+<p>All we need now is espeak-ng, an mbrola voice, a touch of pitch distorsion,
+and some Python code to sync the lip movement, and the Furby speaks!</p>
+<p>The whole source code for the project is
+<a class="reference external" href="https://github.com/paullouisageneau/usb_furby">available on my GitHub</a>
+(under GPLv3).</p>
+ <div class="figure">
+     <video controls loop>
+         <source src="https://blog.chapelierfou.org/files/video_furby_talking.mp4" type="video/mp4">
+     </video>
+     <p class="caption"> The Furby speaks!</p>
+</div></div>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

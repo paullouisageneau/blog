@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+<h4 class="content-archive">Articles tagged with <span style="color:rgb(0,102,204)">WebRTC</span>: </h4>
+
+<ul class="posts">
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/eyepot-programming.html" rel="bookmark" title="Permalink to Eyepot - Programming">Eyepot - Programming</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">17/03/2018</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/video.html">Video</a>        </div>
+    </header>
+    <div class="summary"><p>Let's program the robot I built in <a class="reference external" href="https://blog.chapelierfou.org/eyepot-a-creepy-teapot.html">the previous article</a>!</p>
+<p>The Eyepot works by using in conjunction a <a class="reference external" href="https://www.raspberrypi.org/products/raspberry-pi-zero-w/">Raspberry Pi Zero W</a> and an <a class="reference external" href="https://store.arduino.cc/usa/arduino-pro-mini">Arduino Pro Mini</a> connected by a serial link. Therefore, we'll write the Arduino code first, then a Python program for the Raspberry Pi. Then, we'll setup remote control from a web browser.</p>
+<p>You can find the entire source code for the project licensed under <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a> on <a class="reference external" href="https://github.com/paullouisageneau/eyepot">my repository on GitHub</a>.</p>
+<div class="figure">
+<img alt="The finished Eyepot moving" src="https://blog.chapelierfou.org/images/eyepot_loop.gif" style="width: 480px;" />
+<p class="caption">The finished Eyepot moving</p>
+</div>
+<p><strong>Arduino program</strong></p>
+<p>The Arduino Pro Mini is responsible for driving the eight servos of the legs. Commands to specify target angles are sent from the Raspberry Pi through a serial link.</p>
+<p>The custom serial protocol is text-based and quite simple. It can easily be typed manually when debugging, but it is still compact enough to allow short transmission times even at low bitrates. Each line contains a one-character command, an optional space, and an optional parameter as a base-10 integer. Implemeted commands are as follows:</p>
+<ul class="simple">
+<li><tt class="docutils literal">0</tt> to <tt class="docutils literal">7</tt>: store target angle for corresponding servo (0 to 7)</li>
+<li><tt class="docutils literal">R</tt>: reset stored target angle to default for each servo</li>
+<li><tt class="docutils literal">C</tt>: commit stored target angles …</li></ul></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/eyepot-programming.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-telepresence-robot-enhancements.html" rel="bookmark" title="Permalink to A telepresence robot - Enhancements">A telepresence robot - Enhancements</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">30/03/2017</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a>        </div>
+    </header>
+    <div class="summary"><p>In this article, I'm going to describe architecture enhancements for the
+control system of the WebRTC-controlled telepresence robot I built a few
+months ago, presented <a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html">in a previous
+article</a>.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20170330_185921.jpg"><img alt="The four-wheel base of the telepresence robot" src="https://blog.chapelierfou.org/images/IMG_20170330_185921-small.jpg" /></a>
+<p class="caption">The four-wheel base of the telepresence robot</p>
+</div>
+<p>Since I did not manage to have a satisfying
+<a class="reference external" href="https://webrtc.org/">WebRTC</a> support directly in a native Android
+app, I previously <a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html">settled for a
+hack</a>
+where the smartphone of the Telebot uses two different connections to
+the signaling channel: one to receive user control in the Android app,
+and one to handle the WebRTC session in the browser.</p>
+<p>This was bad for two reasons:</p>
+<ul class="simple">
+<li>The robot can enter an incoherent state if one connection is closed
+and not the other.</li>
+<li>User control commands do not benefit from WebRTC, instead they travel
+through the server, adding latency and jitter.</li>
+</ul>
+<p>The idea for the new architecture is to have the Android app run a small
+HTTP server in background that can accept motor control commands and
+send them to the Bluetooth device. We will send users commands on an
+<tt class="docutils literal">RTCDataChannel</tt> and forward them to this small HTTP server with
+JavaScript in the browser.</p>
+<div class="figure">
+<img alt="General schematic of the enhanced architecture" src="https://blog.chapelierfou.org/wp-content/uploads/2017/03/schema_telebot_arch.png" />
+<p class="caption">General schematic of the enhanced …</p></div></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-telepresence-robot-enhancements.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html" rel="bookmark" title="Permalink to A telepresence robot - Programming">A telepresence robot - Programming</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">04/09/2016</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a>        </div>
+    </header>
+    <div class="summary"><p>In this article we are going to program the Telebot we have built in
+<a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-building.html">the previous article</a>.</p>
+<p>We will use <a class="reference external" href="https://webrtc.org/">WebRTC</a>, which is the new standard
+for real-time communication in Web browsers, and take advantage of the
+necessary signaling channel to also transmit commands to move the robot.</p>
+<div class="figure">
+<img alt="General schematic of the whole control system" src="https://blog.chapelierfou.org/images/schema_telebot_system.png" />
+<p class="caption">General schematic of the whole control system</p>
+</div>
+<p>Programming the robot actually consists of three different steps:</p>
+<ul class="simple">
+<li>Writing <a class="reference external" href="https://www.arduino.cc/en/Reference/HomePage">Arduino-flavored C++
+code</a> for the
+Arduino-like controller to properly move and balance the robot</li>
+<li>Building a specific Android application to handle a
+<a class="reference external" href="https://webrtc.org/">WebRTC</a> session on the smartphone and relay
+commands to the controller via Bluetooth</li>
+<li>Setting up a <a class="reference external" href="https://nodejs.org/">node.js</a> server to serve an
+HTML5 control page over HTTPS allowing visioconference and remote
+control</li>
+</ul>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160901_203722.jpg"><img alt="The Telebot ready to be programmed" src="https://blog.chapelierfou.org/images/IMG_20160901_203722-small.jpg" style="width: 50%;" /></a>
+<p class="caption">The Telebot ready to be programmed</p>
+</div>
+<p>Therefore, the project will be a mix of Arduino, Android Java, and
+Javascript (client-side and server-side). The source code is free
+software, licensed under <a class="reference external" href="https://tldrlegal.com/license/bsd-2-clause-license-%28freebsd%29">BSD 2-clause
+license</a>
+and <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a> (Arduino
+code). The complete source for the project is available on <a class="reference external" href="https://github.com/paullouisageneau/telebot">my
+repository on GitHub</a>.</p>
+<p><strong>Arduino programming</strong></p>
+<p>First, motor control is achieved through an extremely simple text
+protocol over the Bluetooth serial, with one single-letter command …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html">Read more...</a></div>
+    <hr>
+</article></li>
+</ul>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Networks">
+    <meta property="article:published_time" content="2015-09-08">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >An Ethernet Tor box</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">08/09/2015</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/networks.html">Networks</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>You are without doubt already familiar with the <a class="reference external" href="https://www.torproject.org/">Tor
+project</a>. The <a class="reference external" href="https://www.torproject.org/projects/torbrowser.html.en">Tor
+browser</a> is
+already a very handy tool to surf anonymously, but what if we had an
+entire network's traffic forwarded through Tor via a special gateway?
+Let's transform a tiny router in a transparent Tor proxy, a portable
+Wifi access point redirecting all traffic to the Tor network!</p>
+<a class="reference external image-reference" href="https://en.wikipedia.org/wiki/Tor_%28anonymity_network%29"><img alt="Tor logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Tor-logo-2011-flat.svg/640px-Tor-logo-2011-flat.svg.png" style="width: 50%;" /></a>
+<p>Let's begin with a short presentation of one of my favorite hackable
+network devices: the
+<a class="reference external" href="http://www.tp-link.com/en/products/details/cat-4691_TL-MR3020.html">TL-MR3020</a>.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/TL-MR3020-03-e1441720743578.jpg"><img alt="TP-link TL-MR3020" src="https://blog.chapelierfou.org/images/TL-MR3020-03-e1441720743578.jpg" style="width: 50%;" /></a>
+<p class="caption">The portable 3G/4G wireless N router TL-MR3020 from TP-Link</p>
+</div>
+<p>Despite being marketed as a <em>portable 3G/4G wireless N router</em>, it
+does not possess any kind of mobile telecommunication interface.
+Instead, it's a very small and cheap router featuring a 802.11n
+150Mbps Wifi interface, a 100Mbps ethernet port, and a USB port. It is
+powered over a mini-B USB port and it has an extremely low power
+consumption with an average current draw around 120mA at 5V, <em>i.e.</em>
+600mW. Its hardware is pretty limited: an Atheros AR9331 SoC with a
+400MHz MIPS processor, 32MB of RAM, and 4MB of flash memory.</p>
+<p>The preliminary step for our Tor box is to <a class="reference external" href="http://wiki.openwrt.org/toh/tp-link/tl-mr3020">install
+OpenWRT</a> (this example
+uses Barrier Breaker) so we have a full-featured Linux system on it.
+Once OpenWRT is installed, connect to its Wifi network and <tt class="docutils literal">ssh</tt> into
+the router.</p>
+<p>Tor software is available as a package for opkg, OpenWRT's package
+manager. However, the 4MB flash memory is <em>way</em> too small to install it,
+so we need to get more space for packages installation. The easiest way
+to do so is to move the root file system overlay on an external device,
+<em>e.g.</em> a USB key.</p>
+<p>First, format a USB key as ext4 on another computer and plug it in the
+router. We can then mount the filesystem (we need to install some
+packages for the proper kernel modules) and copy the overlay partition
+content there:</p>
+<pre class="code literal-block">
+# opkg update
+# opkg install kmod-usb-storage kmod-fs-ext4 block-mount
+# mkdir /mnt/usb
+# mount /dev/sda1 /mnt/usb
+# tar -cf -C /overlay - . | tar -xf -C /mnt/usb -
+</pre>
+<p>Using <tt class="docutils literal">tar</tt> to copy entire filesystems is always a good habit to keep
+everyting intact, <em>e.g.</em> permissions and links. What <tt class="docutils literal">tar</tt> actually
+does here basically boils down to converting the entire filesystem in a
+stream of bytes, then converting the stream of bytes in a filesystem.
+Then, modify <tt class="docutils literal">/etc/config/fstab</tt> by adding a new entry for the USB
+key:</p>
+<div class="highlight"><pre><span></span><span class="o">[</span>...<span class="o">]</span>
+config<span class="w"> </span>mount
+<span class="w">        </span>option<span class="w"> </span>target<span class="w">        </span><span class="s1">&#39;/overlay&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>device<span class="w">        </span><span class="s1">&#39;/dev/sda1&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>fstype<span class="w">        </span><span class="s1">&#39;ext4&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>options<span class="w">       </span><span class="s1">&#39;rw,sync&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>enabled<span class="w">       </span><span class="m">1</span>
+<span class="w">        </span>option<span class="w"> </span>enabled_fsck<span class="w">  </span><span class="m">0</span>
+</pre></div>
+<p>Eventually, reboot the system, so the USB key will be mounted on <tt class="docutils literal">/overlay</tt>:</p>
+<pre class="code literal-block">
+# reboot
+</pre>
+<p>We can now install Tor:</p>
+<pre class="code literal-block">
+# opkg update
+# opkg install tor
+</pre>
+<p>We first configure the wireless interface:</p>
+<div class="highlight"><pre><span></span><span class="o">[</span>...<span class="o">]</span>
+config<span class="w"> </span>wifi-iface
+<span class="w">        </span>option<span class="w"> </span>device<span class="w">       </span><span class="s1">&#39;radio0&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>network<span class="w">      </span><span class="s1">&#39;lan&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>mode<span class="w">         </span><span class="s1">&#39;ap&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>ssid<span class="w">         </span><span class="s1">&#39;Tor Box&#39;</span><span class="w">       </span><span class="c1"># SSID of your choice</span>
+<span class="w">        </span>option<span class="w"> </span>encryption<span class="w">   </span><span class="s1">&#39;psk2+ccmp&#39;</span><span class="w">     </span><span class="c1"># Enable WPA2 encryption</span>
+<span class="w">        </span>option<span class="w"> </span>key<span class="w">          </span><span class="s1">&#39;MY_SECRET_KEY&#39;</span><span class="w"> </span><span class="c1"># Pre-shared key</span>
+</pre></div>
+<p>Then we set up the network. The LAN uses the address range
+<tt class="docutils literal">192.168.180.0/24</tt> and the router interface uses <tt class="docutils literal">192.168.180.1</tt>:</p>
+<div class="highlight"><pre><span></span><span class="o">[</span>...<span class="o">]</span>
+config<span class="w"> </span>interface<span class="w"> </span><span class="s1">&#39;lan&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>ifname<span class="w">       </span><span class="s1">&#39;wlan0&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>proto<span class="w">        </span><span class="s1">&#39;static&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>ipaddr<span class="w">       </span><span class="s1">&#39;192.168.180.1&#39;</span><span class="w"> </span><span class="c1"># Router address on the LAN (Wifi) interface</span>
+<span class="w">        </span>option<span class="w"> </span>netmask<span class="w">      </span><span class="s1">&#39;255.255.255.0&#39;</span>
+
+config<span class="w"> </span>interface<span class="w"> </span><span class="s1">&#39;wan&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>ifname<span class="w">       </span><span class="s1">&#39;eth0&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>proto<span class="w">        </span><span class="s1">&#39;dhcp&#39;</span><span class="w">          </span><span class="c1"># WAN (ethernet) uses DHCP to get an address</span>
+</pre></div>
+<p>Then we modify the firewall to disable forwarding between LAN and WAN:</p>
+<div class="highlight"><pre><span></span>config<span class="w"> </span>defaults
+<span class="w">        </span>option<span class="w"> </span>input<span class="w">        </span>ACCEPT
+<span class="w">        </span>option<span class="w"> </span>output<span class="w">       </span>ACCEPT
+<span class="w">        </span>option<span class="w"> </span>forward<span class="w">      </span>REJECT
+<span class="w">        </span>option<span class="w"> </span>syn_flood<span class="w">    </span><span class="m">1</span>
+<span class="w">        </span>option<span class="w"> </span>disable_ipv6<span class="w"> </span><span class="m">1</span><span class="w">         </span><span class="c1"># Disable IPv6, this router will be IPv4 only</span>
+
+config<span class="w"> </span>zone
+<span class="w">        </span>option<span class="w"> </span>name<span class="w">         </span><span class="s1">&#39;lan&#39;</span>
+<span class="w">        </span>list<span class="w">   </span>network<span class="w">      </span><span class="s1">&#39;lan&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>input<span class="w">        </span>ACCEPT
+<span class="w">        </span>option<span class="w"> </span>output<span class="w">       </span>ACCEPT
+<span class="w">        </span>option<span class="w"> </span>forward<span class="w">      </span>REJECT<span class="w">    </span><span class="c1"># Important: Do not forward traffic from the LAN</span>
+<span class="w">        </span>option<span class="w"> </span>conntrack<span class="w">    </span><span class="m">1</span>
+<span class="o">[</span>...<span class="o">]</span>
+</pre></div>
+<p>We need to add two custom iptables lines in <tt class="docutils literal">/etc/firewall.user</tt> to
+redirect DNS requests and TCP connections from the LAN to the Tor
+daemon. Other kinds of traffic, for instance other protocols over UDP,
+won't be routed to the WAN, and will simply be rejected. This
+restrictive configuration prevents attacks like <a class="reference external" href="https://github.com/diafygi/webrtc-ips">WebRTC
+leak</a>. However, don't expect
+non purely TCP-based protocols like VoIP or BitTorrent to work behind
+the Tor box.</p>
+<div class="highlight"><pre><span></span>iptables<span class="w"> </span>-t<span class="w"> </span>nat<span class="w"> </span>-A<span class="w"> </span>PREROUTING<span class="w"> </span>-i<span class="w"> </span>wlan0<span class="w"> </span>-p<span class="w"> </span>udp<span class="w"> </span>--dport<span class="w"> </span><span class="m">53</span><span class="w"> </span>-j<span class="w"> </span>REDIRECT<span class="w"> </span>--to-port<span class="w"> </span><span class="m">9053</span>
+iptables<span class="w"> </span>-t<span class="w"> </span>nat<span class="w"> </span>-A<span class="w"> </span>PREROUTING<span class="w"> </span>-i<span class="w"> </span>wlan0<span class="w"> </span>!<span class="w"> </span>-d<span class="w"> </span><span class="m">192</span>.168.180.0/24<span class="w"> </span>-p<span class="w"> </span>tcp<span class="w"> </span>--syn<span class="w"> </span>-j<span class="w"> </span>REDIRECT<span class="w"> </span>--to-port<span class="w"> </span><span class="m">9040</span>
+</pre></div>
+<p>Eventually, we have to configure the Tor daemon itself in
+<tt class="docutils literal">/etc/tor/torrc</tt>:</p>
+<pre class="code literal-block">
+Log notice file /var/log/tor/notices.log
+Nickname ChapelierFou # Nickname of your choice
+ExitPolicy reject *:* # No exits allowed
+RelayBandwidthRate 100 KB
+RelayBandwidthBurst 200 KB
+
+VirtualAddrNetwork 10.192.0.0/10
+AutomapHostsOnResolve 1
+TransPort 9040
+TransListenAddress 192.168.180.1
+DNSPort 9053
+DNSListenAddress 192.168.180.1
+</pre>
+<p>Everything is now ready, let's enable the Tor daemon and reboot! For
+some strange reason the daemon won't start with
+<tt class="docutils literal">/etc/init.d/tor enable</tt>, so the easiest way is to start it from
+<tt class="docutils literal">/etc/rc.local</tt>:</p>
+<div class="highlight"><pre><span></span><span class="o">[</span>...<span class="o">]</span>
+sleep<span class="w"> </span><span class="m">30</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>/etc/init.d/tor<span class="w"> </span>start
+<span class="nb">exit</span><span class="w"> </span><span class="m">0</span>
+</pre></div>
+<pre class="code literal-block">
+# reboot
+</pre>
+<p>After a short while, you can surf through Tor with any device simply by
+connecting to the Wifi network. If something is wrong, check
+<tt class="docutils literal">/var/log/tor/notices.log</tt>. Hidden services and <tt class="docutils literal">.onion</tt> addresses
+are available, of course.</p>
+<p><em>Remember that you are responsible for what you do, and that anonymity
+is _not_ garanteed just by using Tor. At least, be sure you're not
+logged in on web services, use private mode, enable TLS whenever
+possible, and stay paranoid. Just because you're paranoid doesn't mean
+they're not after you!</em></p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

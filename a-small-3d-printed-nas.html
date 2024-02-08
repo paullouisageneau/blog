@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Hardware">
+    <meta property="article:published_time" content="2015-08-19">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >A small 3D-printed NAS</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">19/08/2015</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/hardware.html">Hardware</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p><strong>EDIT:</strong> I published an updated version of the NAS in a
+<a class="reference external" href="https://blog.chapelierfou.org/an-enhanced-3d-printed-nas.html">more recent article</a>.</p>
+<p>Network-Attached Storages (NAS) are very handy devices on a home
+network. They offer a simple way to share or synchronize files, and can
+host various useful services at the same time provided they are generic
+enough. A NAS being nothing more than a specialized file server, we will
+actually build a small home server than will be able to do anything.</p>
+<p>The functions can be the following:</p>
+<ul class="simple">
+<li>File server (FTP, NFS, SMB/CIFS...)</li>
+<li>Streaming server (audio or video on the local network)</li>
+<li>Personal web server (to host a website, synchonize contacts or send
+files to people)</li>
+<li>Local seedbox (to download torrent files)</li>
+<li>Domotic hub (for instance by adding a Zigbee USB dongle)</li>
+</ul>
+<p>The server will be pretty simple in its technical design: a <a class="reference external" href="https://www.raspberrypi.org/products/raspberry-pi-2-model-b/">Raspberry
+Pi 2 model
+B</a> with
+two hard disks connected with USB adapters.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20150807_195951.jpg"><img alt="The finished NAS featuring a Raspberry Pi 2" src="https://blog.chapelierfou.org/images/IMG_20150807_195951-small.jpg" /></a>
+<p class="caption">The finished NAS featuring a Raspberry Pi 2</p>
+</div>
+<p>The Raspberry Pi is actually not able to power the two drives over USB,
+since we would need 500mA per drive, so 1000mA overall, and the Pi can
+only supply 600mA over USB. There is a possible boot setting in
+<tt class="docutils literal">/boot/config.txt</tt> called <tt class="docutils literal">max_usb_current</tt>, which when set to 1
+raises the maximum current intensity over USB to 1.2A, but since it is
+applied only during boot, our disks will still prevent the Pi to
+actually start properly. For this reason, we need a USB hub with a 2A
+adapter to power everything and connect the drives to the Pi.
+Backfeeding would be quite a bad idea, so the Pi needs to be connected
+to the hub twice, once as a device for power and once as the host.</p>
+<p><em>In this kind of setup, always pay attention to use a genuine power
+adapter that will be able to handle the load, some really cheap adapters
+are rated 2A but might not be able to supply this current over a long
+period of time due to overheating.</em></p>
+<p>I designed the case, front panel and lid with
+<a class="reference external" href="http://www.openscad.org/">OpenSCAD</a> to print them in 3D. You can
+download the SCAD source files and the corresponding STL files
+<a class="reference external" href="https://blog.chapelierfou.org/files/paulonas.zip">here</a> (licensed under
+<a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a>).</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/nas_models.png"><img alt="3D models of the case, the front panel and the lid" src="https://blog.chapelierfou.org/images/nas_models.png" /></a>
+<p class="caption">3D models of the case, the front panel and the lid generated with OpenSCAD</p>
+</div>
+<p>The case has 4 levels: a 4-port powered USB hub at the bottom, then
+two 2.5'' hard disks, and a Raspberry Pi on the top. The lid has a
+location for a 25mm*25mm fan, connected to one of the Pi's power
+pins.</p>
+<p>The models are designed to be printed without supports, so they can be
+printed directly as is. My printer is a <a class="reference external" href="http://reprap.org/wiki/Air_2">Prusa Air
+2</a> with an
+<a class="reference external" href="http://e3d-online.com/E3D-v6">E3D-v6</a> head, and I use
+<a class="reference external" href="https://en.wikipedia.org/wiki/Polylactic_acid">PLA</a>.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20150718_182929.jpg"><img alt="3D printing the NAS case" src="https://blog.chapelierfou.org/images/IMG_20150718_182929-small.jpg" /></a>
+<p class="caption">3D printing the NAS case, the process is long so let's have tea in the meantime :P</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20150807_193939.jpg"><img alt="The 3D-printed case from the top" src="https://blog.chapelierfou.org/images/IMG_20150807_193939-small.jpg" /></a>
+<p class="caption">The 3D-printed case from the top, front parts are printed separately and glued</p>
+</div>
+<p>Next, the front panel is glued to the case, the USB hub is installed
+with two screws at the bottom, and the Raspberry Pi with four screws at
+the top.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20150807_194615.jpg"><img alt="USB 2.0 hub in place into the NAS case" src="https://blog.chapelierfou.org/images/IMG_20150807_194615-small.jpg" /></a>
+<p class="caption">USB 2.0 hub in place into the NAS case, showing 4 USB ports on the front and the mini-B USB host port on the side. On the other side is the power input.</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20150807_195307.jpg"><img alt="The Raspberry Pi in place on top of the the case" src="https://blog.chapelierfou.org/images/IMG_20150807_195307-small.jpg" /></a>
+<p class="caption">The Raspberry Pi in place on top of the the case with the USB power cable attached.</p>
+</div>
+<p>I chose to connect two 1 TB 2.5'' hard disks with two
+<a class="reference external" href="http://www.raidsonic.de/products/adapter_multidocking/hdd_ssd_adapter/index_en.php?we_objectID=2051">IB-AC6033-U3</a>
+adapters from RaidSonic. They come with a case yet it can only fit 7mm
+drives.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20150807_195440.jpg"><img alt="The hard drives being inserted into the case" src="https://blog.chapelierfou.org/images/IMG_20150807_195440-small.jpg" /></a>
+<p class="caption">The hard drives being inserted into the case</p>
+</div>
+<p>The final step is to attach the fan to the lid, connect it to one of the
+Pi's power pins, and close the lid by clipping it in place.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20150807_200312_rotated.jpg"><img alt="Connecting the fan to the Raspberry Pi 3.3V pin" src="https://blog.chapelierfou.org/images/IMG_20150807_200312_rotated-small.jpg" /></a>
+<p class="caption">Connecting the fan to the Raspberry Pi 3.3V pin</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20150807_200807.jpg"><img alt="The NAS is now finished !" src="https://blog.chapelierfou.org/images/IMG_20150807_200807-small.jpg" /></a>
+<p class="caption">The NAS is now finished !</p>
+</div>
+<p>The NAS is now ready to run and can be configured! I chose to install
+<a class="reference external" href="https://www.raspbian.org/">Raspbian</a> on the Pi's microSD card, and
+to set up the disks as
+<a class="reference external" href="https://raid.wiki.kernel.org/index.php/RAID_setup#RAID-0">RAID0</a> (of
+course, never do so if you plan to store critical data). I might write
+articles about configuration in the future, so stay tuned!</p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

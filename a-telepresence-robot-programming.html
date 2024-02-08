@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Robotics">
+    <meta property="article:published_time" content="2016-09-04">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >A telepresence robot - Programming</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">04/09/2016</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>In this article we are going to program the Telebot we have built in
+<a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-building.html">the previous article</a>.</p>
+<p>We will use <a class="reference external" href="https://webrtc.org/">WebRTC</a>, which is the new standard
+for real-time communication in Web browsers, and take advantage of the
+necessary signaling channel to also transmit commands to move the robot.</p>
+<div class="figure">
+<img alt="General schematic of the whole control system" src="https://blog.chapelierfou.org/images/schema_telebot_system.png" />
+<p class="caption">General schematic of the whole control system</p>
+</div>
+<p>Programming the robot actually consists of three different steps:</p>
+<ul class="simple">
+<li>Writing <a class="reference external" href="https://www.arduino.cc/en/Reference/HomePage">Arduino-flavored C++
+code</a> for the
+Arduino-like controller to properly move and balance the robot</li>
+<li>Building a specific Android application to handle a
+<a class="reference external" href="https://webrtc.org/">WebRTC</a> session on the smartphone and relay
+commands to the controller via Bluetooth</li>
+<li>Setting up a <a class="reference external" href="https://nodejs.org/">node.js</a> server to serve an
+HTML5 control page over HTTPS allowing visioconference and remote
+control</li>
+</ul>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160901_203722.jpg"><img alt="The Telebot ready to be programmed" src="https://blog.chapelierfou.org/images/IMG_20160901_203722-small.jpg" style="width: 50%;" /></a>
+<p class="caption">The Telebot ready to be programmed</p>
+</div>
+<p>Therefore, the project will be a mix of Arduino, Android Java, and
+Javascript (client-side and server-side). The source code is free
+software, licensed under <a class="reference external" href="https://tldrlegal.com/license/bsd-2-clause-license-%28freebsd%29">BSD 2-clause
+license</a>
+and <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a> (Arduino
+code). The complete source for the project is available on <a class="reference external" href="https://github.com/paullouisageneau/telebot">my
+repository on GitHub</a>.</p>
+<p><strong>Arduino programming</strong></p>
+<p>First, motor control is achieved through an extremely simple text
+protocol over the Bluetooth serial, with one single-letter command and
+one value per line. Motors are driven with
+<a class="reference external" href="https://www.arduino.cc/en/Tutorial/PWM">PWM</a> using <tt class="docutils literal">analogWrite</tt>.
+In parallel, battery voltage is measured thanks to the probe on pin A0,
+the value is scaled with the empirically-defined factor
+<tt class="docutils literal">batteryProbeFactor</tt>.</p>
+<div class="highlight"><pre><span></span><span class="c1">// Pin setup</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">motorLeftBackwardPin</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">motorLeftForwardPin</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">motorLeftEnablePin</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">motorRightBackwardPin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">motorRightForwardPin</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">motorRightEnablePin</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">batteryProbePin</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">A0</span><span class="p">;</span>
+
+<span class="n">SoftwareSerial</span><span class="w"> </span><span class="nf">bluetooth</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">);</span><span class="w"> </span><span class="c1">// TX, RX</span>
+
+<span class="k">const</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">controlFactor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1000L</span><span class="p">;</span><span class="w">   </span><span class="c1">// Adjust depending on motors</span>
+
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">motorMin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">64</span><span class="p">;</span><span class="w">    </span><span class="c1">// Adjust min and max depending on motors</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">motorMax</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">255</span><span class="p">;</span>
+
+<span class="n">String</span><span class="w"> </span><span class="n">inputString</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">;</span>
+
+<span class="c1">// Current motor controls</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">commandRightPower</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">commandLeftPower</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">tempRightPower</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">tempLeftPower</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="c1">// Set right motor power in [-1000, 1000]</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">motorRight</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">power</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">abs</span><span class="p">(</span><span class="n">power</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="n">power</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">power</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">constrain</span><span class="p">(</span><span class="n">power</span><span class="p">,</span><span class="w"> </span><span class="mi">-1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
+<span class="w">    </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">motorRightBackwardPin</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">power</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">HIGH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">LOW</span><span class="p">));</span>
+<span class="w">    </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">motorRightForwardPin</span><span class="p">,</span><span class="w">  </span><span class="p">(</span><span class="n">power</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">HIGH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">LOW</span><span class="p">));</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">power</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">analogWrite</span><span class="p">(</span><span class="n">motorRightEnablePin</span><span class="p">,</span><span class="w"> </span><span class="n">map</span><span class="p">(</span><span class="n">abs</span><span class="p">(</span><span class="n">power</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="n">motorMin</span><span class="p">,</span><span class="w"> </span><span class="n">motorMax</span><span class="p">));</span>
+<span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="n">analogWrite</span><span class="p">(</span><span class="n">motorRightEnablePin</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// Set left motor power in [-1000, 1000]</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">motorLeft</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">power</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">abs</span><span class="p">(</span><span class="n">power</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="n">power</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">power</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">constrain</span><span class="p">(</span><span class="n">power</span><span class="p">,</span><span class="w"> </span><span class="mi">-1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
+<span class="w">    </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">motorLeftBackwardPin</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">power</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">HIGH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">LOW</span><span class="p">));</span>
+<span class="w">    </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">motorLeftForwardPin</span><span class="p">,</span><span class="w">  </span><span class="p">(</span><span class="n">power</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">HIGH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">LOW</span><span class="p">));</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">power</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">analogWrite</span><span class="p">(</span><span class="n">motorLeftEnablePin</span><span class="p">,</span><span class="w"> </span><span class="n">map</span><span class="p">(</span><span class="n">abs</span><span class="p">(</span><span class="n">power</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="n">motorMin</span><span class="p">,</span><span class="w"> </span><span class="n">motorMax</span><span class="p">));</span>
+<span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="n">analogWrite</span><span class="p">(</span><span class="n">motorLeftEnablePin</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="c1">// Init pins</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">motorRightBackwardPin</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">motorRightForwardPin</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">motorRightEnablePin</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">motorLeftBackwardPin</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">motorLeftForwardPin</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">motorLeftEnablePin</span><span class="p">,</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Init serials</span>
+<span class="w">    </span><span class="n">bluetooth</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="mi">9600</span><span class="p">);</span><span class="w">  </span><span class="c1">// HC-06 defaults to 9600bps</span>
+<span class="w">    </span><span class="n">inputString</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="mi">100</span><span class="p">);</span>
+
+<span class="w">    </span><span class="p">[...]</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">batteryVoltage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">int</span><span class="p">(</span><span class="kt">long</span><span class="p">(</span><span class="n">analogRead</span><span class="p">(</span><span class="n">batteryProbePin</span><span class="p">))</span><span class="o">*</span><span class="n">batteryProbeFactor</span><span class="o">/</span><span class="mf">1000L</span><span class="p">);</span><span class="w">  </span><span class="c1">// mV</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">batteryPercent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">constrain</span><span class="p">(</span><span class="n">map</span><span class="p">(</span><span class="n">batteryVoltage</span><span class="p">,</span><span class="w"> </span><span class="mi">3200</span><span class="p">,</span><span class="w"> </span><span class="mi">4200</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Read commands on bluetooth serial</span>
+<span class="w">    </span><span class="k">while</span><span class="p">(</span><span class="n">bluetooth</span><span class="p">.</span><span class="n">available</span><span class="p">())</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">char</span><span class="w"> </span><span class="n">chr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="p">)</span><span class="n">bluetooth</span><span class="p">.</span><span class="n">read</span><span class="p">();</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">chr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">&#39;\n&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">chr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">&#39;\r&#39;</span><span class="p">)</span>
+<span class="w">                </span><span class="n">inputString</span><span class="o">+=</span><span class="w"> </span><span class="n">chr</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="p">(</span><span class="n">inputString</span><span class="p">.</span><span class="n">length</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="kt">char</span><span class="w"> </span><span class="n">cmd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inputString</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+<span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">param</span><span class="p">;</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">pos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">            </span><span class="k">while</span><span class="p">(</span><span class="n">pos</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">inputString</span><span class="p">.</span><span class="n">length</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">inputString</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39; &#39;</span><span class="p">)</span><span class="w"> </span><span class="o">++</span><span class="n">pos</span><span class="p">;</span>
+<span class="w">            </span><span class="n">param</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inputString</span><span class="p">.</span><span class="n">substring</span><span class="p">(</span><span class="n">pos</span><span class="p">);</span>
+
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">            </span><span class="k">switch</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">            </span><span class="k">case</span><span class="w"> </span><span class="sc">&#39;L&#39;</span><span class="p">:</span><span class="w"> </span><span class="c1">// left</span>
+<span class="w">                </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">constrain</span><span class="p">(</span><span class="n">param</span><span class="p">.</span><span class="n">toInt</span><span class="p">(),</span><span class="w"> </span><span class="mi">-100</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="o">*</span><span class="mi">10</span><span class="p">;</span>
+<span class="w">                </span><span class="n">tempLeftPower</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">int</span><span class="p">(</span><span class="kt">long</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">*</span><span class="n">controlFactor</span><span class="o">/</span><span class="mf">1000L</span><span class="p">);</span>
+<span class="w">                </span><span class="k">break</span><span class="p">;</span>
+
+<span class="w">            </span><span class="k">case</span><span class="w"> </span><span class="sc">&#39;R&#39;</span><span class="p">:</span><span class="w"> </span><span class="c1">// right</span>
+<span class="w">                </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">constrain</span><span class="p">(</span><span class="n">param</span><span class="p">.</span><span class="n">toInt</span><span class="p">(),</span><span class="w"> </span><span class="mi">-100</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="o">*</span><span class="mi">10</span><span class="p">;</span>
+<span class="w">                </span><span class="n">tempRightPower</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">int</span><span class="p">(</span><span class="kt">long</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">*</span><span class="n">controlFactor</span><span class="o">/</span><span class="mf">1000L</span><span class="p">);</span>
+<span class="w">                </span><span class="k">break</span><span class="p">;</span>
+
+<span class="w">            </span><span class="k">case</span><span class="w"> </span><span class="sc">&#39;C&#39;</span><span class="p">:</span><span class="w"> </span><span class="c1">// commit</span>
+<span class="w">                </span><span class="n">commandLeftPower</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">tempLeftPower</span><span class="p">;</span>
+<span class="w">                </span><span class="n">commandRightPower</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tempRightPower</span><span class="p">;</span>
+<span class="w">                </span><span class="k">break</span><span class="p">;</span>
+<span class="w">            </span><span class="k">case</span><span class="w"> </span><span class="sc">&#39;B&#39;</span><span class="p">:</span><span class="w"> </span><span class="c1">// battery</span>
+<span class="w">                </span><span class="n">bluetooth</span><span class="p">.</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;B &quot;</span><span class="p">);</span>
+<span class="w">                </span><span class="n">bluetooth</span><span class="p">.</span><span class="n">print</span><span class="p">(</span><span class="n">batteryPercent</span><span class="p">);</span>
+<span class="w">                </span><span class="n">bluetooth</span><span class="p">.</span><span class="n">println</span><span class="p">();</span>
+<span class="w">                </span><span class="k">break</span><span class="p">;</span>
+<span class="w">            </span><span class="k">default</span><span class="o">:</span>
+<span class="w">                </span><span class="n">bluetooth</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">&quot;E&quot;</span><span class="p">);</span>
+<span class="w">                </span><span class="k">break</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="n">inputString</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="p">[...]</span>
+<span class="p">}</span>
+</pre></div>
+<p>If the battery voltage is too low, we trigger an emergency stop to
+prevent damaging it.</p>
+<div class="highlight"><pre><span></span><span class="k">if</span><span class="p">(</span><span class="n">batteryPercent</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">bluetooth</span><span class="p">.</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;B 0&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">bluetooth</span><span class="p">.</span><span class="n">println</span><span class="p">();</span>
+<span class="w">    </span><span class="n">motorRight</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">motorLeft</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+<p>Before actually setting motor power, we have to add a correction in
+order to keep the robot balanced: the principle is to move in the
+direction the robot is leaning, like a
+<a class="reference external" href="https://en.wikipedia.org/wiki/Segway_PT">Segway</a>. To this end, we
+need to communicate with the MPU-6050 via the I2C bus to read the
+measured values. I tried first to use the Arduino Wire library, but it
+tends to hang after some time and does not seem to allow defining a
+timeout. It is quite a drawback since it can crash the robot and as a
+result make it fall down, so I prefer to use a <a class="reference external" href="http://playground.arduino.cc/Main/SoftwareI2CLibrary">software I2C
+library</a>.</p>
+<div class="highlight"><pre><span></span><span class="cp">#define MPU 0x68 </span><span class="c1">// I2C address of the MPU-6050</span>
+
+<span class="cp">#define SDA_PORT PORTC</span>
+<span class="cp">#define SDA_PIN 4       </span><span class="c1">// A4</span>
+<span class="cp">#define SCL_PORT PORTC</span>
+<span class="cp">#define SCL_PIN 5       </span><span class="c1">// A5</span>
+<span class="cp">#define I2C_SLOWMODE 1  </span><span class="c1">// Limit to 25kHz</span>
+<span class="cp">#define I2C_TIMEOUT 10  </span><span class="c1">// 10ms timeout</span>
+<span class="cp">#define ADDR(x) (x &lt;&lt; 1)</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;SoftI2CMaster.h&gt;</span><span class="c1"> // https://github.com/felias-fogg/SoftI2CMaster</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="p">[...]</span>
+<span class="w">    </span><span class="n">i2c_init</span><span class="p">();</span>
+<span class="w">    </span><span class="n">i2c_start_wait</span><span class="p">(</span><span class="n">ADDR</span><span class="p">(</span><span class="n">MPU</span><span class="p">)</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">I2C_WRITE</span><span class="p">);</span>
+<span class="w">    </span><span class="n">i2c_write</span><span class="p">(</span><span class="mh">0x6B</span><span class="p">);</span><span class="w">  </span><span class="c1">// PWR_MGMT_1 register</span>
+<span class="w">    </span><span class="n">i2c_write</span><span class="p">(</span><span class="mh">0x00</span><span class="p">);</span><span class="w">  </span><span class="c1">// set to zero (wakes up the MPU-6050)</span>
+<span class="w">    </span><span class="n">i2c_stop</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="p">[...]</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">i2c_start</span><span class="p">(</span><span class="n">ADDR</span><span class="p">(</span><span class="n">MPU</span><span class="p">)</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">I2C_WRITE</span><span class="p">))</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">i2c_write</span><span class="p">(</span><span class="mh">0x3B</span><span class="p">);</span><span class="w">  </span><span class="c1">// starting with register 0x3B (ACCEL_XOUT_H)</span>
+<span class="w">        </span><span class="n">i2c_rep_start</span><span class="p">(</span><span class="n">ADDR</span><span class="p">(</span><span class="n">MPU</span><span class="p">)</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">I2C_READ</span><span class="p">);</span>
+
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">accx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="mi">8</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span><span class="w">  </span><span class="c1">// 0x3B (ACCEL_XOUT_H) &amp; 0x3C (ACCEL_XOUT_L)</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">accy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="mi">8</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span><span class="w">  </span><span class="c1">// 0x3D (ACCEL_YOUT_H) &amp; 0x3E (ACCEL_YOUT_L)</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">accz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="mi">8</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span><span class="w">  </span><span class="c1">// 0x3F (ACCEL_ZOUT_H) &amp; 0x40 (ACCEL_ZOUT_L)</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">temp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="mi">8</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span><span class="w">  </span><span class="c1">// 0x41 (TEMP_OUT_H) &amp; 0x42 (TEMP_OUT_L)</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">rotx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="mi">8</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span><span class="w">  </span><span class="c1">// 0x43 (GYRO_XOUT_H) &amp; 0x44 (GYRO_XOUT_L)</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">roty</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="mi">8</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span><span class="w">  </span><span class="c1">// 0x45 (GYRO_YOUT_H) &amp; 0x46 (GYRO_YOUT_L)</span>
+<span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">rotz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">false</span><span class="p">)</span><span class="o">&lt;&lt;</span><span class="mi">8</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span><span class="w">   </span><span class="c1">// 0x47 (GYRO_ZOUT_H) &amp; 0x48 (GYRO_ZOUT_L)</span>
+
+<span class="w">        </span><span class="n">i2c_stop</span><span class="p">();</span>
+
+<span class="w">        </span><span class="c1">// Process values here, see the next step</span>
+<span class="w">        </span><span class="c1">// Note: temperature in Celsius is temp/340.00+36.53</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="p">[...]</span>
+<span class="p">}</span>
+</pre></div>
+<p>Then, to balance the robot, a double linear correction is added to
+motor control, taking into account the angular speed <tt class="docutils literal">rotx</tt> and the
+angle <tt class="docutils literal">angx</tt>, with two different empirical constants <tt class="docutils literal">k1</tt> and <tt class="docutils literal">k2</tt>:</p>
+<p><tt class="docutils literal">correction = rotx/k1 + angx/k2</tt></p>
+<p>Computation should be achieved with integers only, since the processor
+does not have a native floating point unit. The update loop runs at
+100Hz, <em>i.e.</em>, values are updated every 10ms.</p>
+<div class="highlight"><pre><span></span><span class="k">const</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">k1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1000L</span><span class="p">;</span><span class="w">  </span><span class="c1">// Adjust k1 and k2 depending on motors</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">k2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">400L</span><span class="p">;</span>
+
+<span class="n">rotx</span><span class="o">*=</span><span class="w"> </span><span class="mi">1000</span><span class="p">;</span><span class="w">      </span><span class="c1">// all values are in millis</span>
+<span class="n">accz</span><span class="o">*=</span><span class="w"> </span><span class="mi">1000</span><span class="p">;</span>
+
+<span class="c1">// Calibration</span>
+<span class="k">if</span><span class="p">(</span><span class="n">millis</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">calibrationMillis</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="c1">// Estimate idle input values</span>
+<span class="w">    </span><span class="n">rotx0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">rotx0</span><span class="o">*</span><span class="n">steps</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rotx</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">steps</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
+<span class="w">    </span><span class="n">accz0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">accz0</span><span class="o">*</span><span class="n">steps</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">accz</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">steps</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Update idle input values</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">gamma1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1000L</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">gamma2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1000L</span><span class="p">;</span>
+<span class="w">    </span><span class="n">rotx0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">rotx0</span><span class="o">*</span><span class="p">(</span><span class="n">gamma1</span><span class="mi">-1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rotx</span><span class="p">)</span><span class="o">/</span><span class="n">gamma1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">accz0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">accz0</span><span class="o">*</span><span class="p">(</span><span class="n">gamma2</span><span class="mi">-1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">accz</span><span class="p">)</span><span class="o">/</span><span class="n">gamma2</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Center inputs</span>
+<span class="w">    </span><span class="n">rotx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rotx</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">rotx0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">accz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">accz</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">accz0</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Smooth</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10L</span><span class="p">;</span>
+<span class="w">    </span><span class="n">rotxl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">rotxl</span><span class="o">*</span><span class="p">(</span><span class="n">alpha</span><span class="mi">-1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rotx</span><span class="p">)</span><span class="o">/</span><span class="n">alpha</span><span class="p">;</span>
+<span class="w">    </span><span class="n">acczl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">acczl</span><span class="o">*</span><span class="p">(</span><span class="n">alpha</span><span class="mi">-1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">accz</span><span class="p">)</span><span class="o">/</span><span class="n">alpha</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Integrate rotation</span>
+<span class="w">    </span><span class="n">angx</span><span class="o">+=</span><span class="w"> </span><span class="n">rotx</span><span class="o">*</span><span class="n">stepMillis</span><span class="o">/</span><span class="mf">1000L</span><span class="p">;</span><span class="w"> </span><span class="c1">// stepMillis = 10</span>
+
+<span class="w">    </span><span class="c1">// Recalibrate angle according to gravity</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">g</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10L</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">beta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">100L</span><span class="p">;</span>
+<span class="w">    </span><span class="n">angx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">angx</span><span class="o">*</span><span class="p">(</span><span class="n">beta</span><span class="mi">-1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">acczl</span><span class="o">/</span><span class="n">g</span><span class="p">)</span><span class="o">/</span><span class="n">beta</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Double linear correction with rotation and angle</span>
+<span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">correction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rotxl</span><span class="o">/</span><span class="n">k1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">angx</span><span class="o">/</span><span class="n">k2</span><span class="p">;</span>
+<span class="w">    </span><span class="n">correction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">constrain</span><span class="p">(</span><span class="n">correction</span><span class="p">,</span><span class="w"> </span><span class="mi">-2000</span><span class="p">,</span><span class="w"> </span><span class="mi">2000</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Adjust motors</span>
+<span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">motorRightPower</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">constrain</span><span class="p">(</span><span class="n">commandRightPower</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">correction</span><span class="p">,</span><span class="w"> </span><span class="mi">-1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">motorLeftPower</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">constrain</span><span class="p">(</span><span class="n">commandLeftPower</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">correction</span><span class="p">,</span><span class="w"> </span><span class="mi">-1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
+<span class="w">    </span><span class="n">motorRight</span><span class="p">(</span><span class="n">motorRightPower</span><span class="p">);</span>
+<span class="w">    </span><span class="n">motorLeft</span><span class="p">(</span><span class="n">motorLeftPower</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="p">[...]</span>
+</pre></div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160901_205651.jpg"><img alt="Programming the robot with a USB to UART bridge" src="https://blog.chapelierfou.org/images/IMG_20160901_205651-small.jpg" /></a>
+<p class="caption">Programming the robot with a USB to UART bridge</p>
+</div>
+<p><strong>Android application</strong></p>
+<p>The first job of the Android app is of course to connect to the base via
+Bluetooth.</p>
+<p>We list paired devices called &quot;Telebot&quot;, which the HC-06 name has been
+previously changed to (You only need to connect it directly to the UART
+and send the AT command <tt class="docutils literal">&quot;AT+NAMETelebot&quot;</tt>). Then we try to connect
+the serial port service on each of them.</p>
+<div class="highlight"><pre><span></span><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">TelebotActivity</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">Activity</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Bluetooth device name</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">DEVICE_NAME</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Telebot&quot;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Well-known Serial Port Profile UUID</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="n">SPP_UUID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UUID</span><span class="p">.</span><span class="na">fromString</span><span class="p">(</span><span class="s">&quot;00001101-0000-1000-8000-00805F9B34FB&quot;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">BluetoothAdapter</span><span class="w"> </span><span class="n">mBtAdapter</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">BluetoothSocket</span><span class="w"> </span><span class="n">mBtSocket</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">SerialThread</span><span class="w"> </span><span class="n">mSerialThread</span><span class="p">;</span>
+
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">protected</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onStart</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">super</span><span class="p">.</span><span class="na">onStart</span><span class="p">();</span>
+
+<span class="w">        </span><span class="n">AsyncTask</span><span class="p">.</span><span class="na">execute</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">Runnable</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nd">@Override</span>
+<span class="w">            </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">initSerial</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">exitWithError</span><span class="p">(</span><span class="s">&quot;Unable to connect to the Bluetooth device.&quot;</span><span class="p">);</span>
+<span class="w">                    </span><span class="k">return</span><span class="p">;</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">                </span><span class="o">[</span><span class="p">...</span><span class="o">]</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">});</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Initialize Bluetooth serial</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">initSerial</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Get the Bluetooth adapter</span>
+<span class="w">        </span><span class="n">mBtAdapter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BluetoothAdapter</span><span class="p">.</span><span class="na">getDefaultAdapter</span><span class="p">();</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">mBtAdapter</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// Check if Bluetooth is enabled</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">mBtAdapter</span><span class="p">.</span><span class="na">isEnabled</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">Log</span><span class="p">.</span><span class="na">d</span><span class="p">(</span><span class="n">TAG</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Bluetooth is enabled&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// Prompt user to turn Bluetooth on</span>
+<span class="w">            </span><span class="n">Intent</span><span class="w"> </span><span class="n">enableBtIntent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Intent</span><span class="p">(</span><span class="n">BluetoothAdapter</span><span class="p">.</span><span class="na">ACTION_REQUEST_ENABLE</span><span class="p">);</span>
+<span class="w">            </span><span class="n">startActivityForResult</span><span class="p">(</span><span class="n">enableBtIntent</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// Look for Bluetooth device</span>
+<span class="w">        </span><span class="n">Set</span><span class="w"> </span><span class="n">pairedDevices</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mBtAdapter</span><span class="p">.</span><span class="na">getBondedDevices</span><span class="p">();</span>
+<span class="w">        </span><span class="k">for</span><span class="p">(</span><span class="n">BluetoothDevice</span><span class="w"> </span><span class="n">device</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">pairedDevices</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">device</span><span class="p">.</span><span class="na">getName</span><span class="p">().</span><span class="na">equals</span><span class="p">(</span><span class="n">DEVICE_NAME</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">Log</span><span class="p">.</span><span class="na">d</span><span class="p">(</span><span class="n">TAG</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Found Bluetooth device &quot;</span><span class="p">);</span>
+
+<span class="w">                    </span><span class="c1">// Connect serial port on device</span>
+<span class="w">                    </span><span class="n">mBtSocket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device</span><span class="p">.</span><span class="na">createInsecureRfcommSocketToServiceRecord</span><span class="p">(</span><span class="n">SPP_UUID</span><span class="p">);</span>
+<span class="w">                    </span><span class="n">mBtSocket</span><span class="p">.</span><span class="na">connect</span><span class="p">();</span>
+<span class="w">                    </span><span class="n">Log</span><span class="p">.</span><span class="na">d</span><span class="p">(</span><span class="n">TAG</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Bluetooth device connected&quot;</span><span class="p">);</span>
+
+<span class="w">                    </span><span class="c1">// Create thread</span>
+<span class="w">                    </span><span class="n">mSerialThread</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">SerialThread</span><span class="p">(</span><span class="n">mBtSocket</span><span class="p">);</span>
+<span class="w">                    </span><span class="n">mSerialThread</span><span class="p">.</span><span class="na">start</span><span class="p">();</span>
+<span class="w">                    </span><span class="k">break</span><span class="p">;</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">                </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">IOException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">e</span><span class="p">.</span><span class="na">printStackTrace</span><span class="p">();</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">mSerialThread</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Thread handling the BluetoothSocket</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">class</span> <span class="nc">SerialThread</span><span class="w"> </span><span class="kd">extends</span><span class="w"> </span><span class="n">Thread</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">private</span><span class="w"> </span><span class="n">InputStream</span><span class="w"> </span><span class="n">mInStream</span><span class="p">;</span>
+<span class="w">        </span><span class="kd">private</span><span class="w"> </span><span class="n">OutputStream</span><span class="w"> </span><span class="n">mOutStream</span><span class="p">;</span>
+
+<span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="nf">SerialThread</span><span class="p">(</span><span class="n">BluetoothSocket</span><span class="w"> </span><span class="n">socket</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">IOException</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">mInStream</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">socket</span><span class="p">.</span><span class="na">getInputStream</span><span class="p">();</span>
+<span class="w">            </span><span class="n">mOutStream</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">socket</span><span class="p">.</span><span class="na">getOutputStream</span><span class="p">();</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">mInStream</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="c1">// Read lines from Bluetooth serial</span>
+<span class="w">                </span><span class="kt">int</span><span class="w"> </span><span class="n">chr</span><span class="p">;</span>
+<span class="w">                </span><span class="n">StringBuffer</span><span class="w"> </span><span class="n">line</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">StringBuffer</span><span class="p">();</span>
+<span class="w">                </span><span class="k">while</span><span class="p">((</span><span class="n">chr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mInStream</span><span class="p">.</span><span class="na">read</span><span class="p">())</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="k">if</span><span class="p">(</span><span class="n">chr</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;\n&#39;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="n">Log</span><span class="p">.</span><span class="na">d</span><span class="p">(</span><span class="n">TAG</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Received: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">line</span><span class="p">);</span>
+<span class="w">                        </span><span class="n">line</span><span class="p">.</span><span class="na">setLength</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                    </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="k">if</span><span class="p">(</span><span class="n">chr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">&#39;\r&#39;</span><span class="p">)</span>
+<span class="w">                        </span><span class="n">line</span><span class="p">.</span><span class="na">append</span><span class="p">((</span><span class="kt">char</span><span class="p">)</span><span class="n">chr</span><span class="p">);</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">IOException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">e</span><span class="p">.</span><span class="na">printStackTrace</span><span class="p">();</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// Write line on Bluetooth serial</span>
+<span class="w">        </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">writeln</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">line</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">if</span><span class="p">(</span><span class="n">mOutStream</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="n">mOutStream</span><span class="p">.</span><span class="na">write</span><span class="p">((</span><span class="n">line</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="sc">&#39;\n&#39;</span><span class="p">).</span><span class="na">getBytes</span><span class="p">());</span>
+<span class="w">                </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">IOException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">Log</span><span class="p">.</span><span class="na">d</span><span class="p">(</span><span class="n">TAG</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Sending failed: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="na">getMessage</span><span class="p">());</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InterruptedException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">e</span><span class="p">.</span><span class="na">printStackTrace</span><span class="p">();</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>I have attempted for some time to make use of
+<a class="reference external" href="http://www.openwebrtc.org/">OpenWebRTC</a> to create a WebRTC-enabled
+native Android application, but I could not obtain something reliably
+interoperable with Firefox or Chromium, even after some debugging. For
+this reason, I'm creating an Android application handling the robot
+controls but relying on a Chrome instance to handle the actual WebRTC
+session. It is kind of a hack, but it works.</p>
+<div class="highlight"><pre><span></span><span class="nd">@Override</span>
+<span class="kd">protected</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onStart</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">super</span><span class="p">.</span><span class="na">onStart</span><span class="p">();</span>
+
+<span class="w">    </span><span class="n">AsyncTask</span><span class="p">.</span><span class="na">execute</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">Runnable</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// Initialize serial</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">initSerial</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="o">[</span><span class="p">...</span><span class="o">]</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">            </span><span class="c1">// Join session</span>
+<span class="w">            </span><span class="n">join</span><span class="p">(</span><span class="n">mSessionId</span><span class="p">,</span><span class="w"> </span><span class="n">mUserId</span><span class="p">);</span>
+
+<span class="w">            </span><span class="c1">// Finally, start the browser to actually handle WebRTC</span>
+<span class="w">            </span><span class="n">Intent</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Intent</span><span class="p">(</span><span class="n">Intent</span><span class="p">.</span><span class="na">ACTION_VIEW</span><span class="p">);</span>
+<span class="w">            </span><span class="n">i</span><span class="p">.</span><span class="na">setData</span><span class="p">(</span><span class="n">Uri</span><span class="p">.</span><span class="na">parse</span><span class="p">(</span><span class="n">URL</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;/#_&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">mSessionId</span><span class="p">));</span>
+<span class="w">            </span><span class="n">i</span><span class="p">.</span><span class="na">setPackage</span><span class="p">(</span><span class="s">&quot;com.android.chrome&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="n">startActivityForResult</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="p">}</span>
+
+<span class="nd">@Override</span>
+<span class="kd">protected</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onActivityResult</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">requestCode</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">resultCode</span><span class="p">,</span><span class="w"> </span><span class="n">Intent</span><span class="w"> </span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">super</span><span class="p">.</span><span class="na">onActivityResult</span><span class="p">(</span><span class="n">requestCode</span><span class="p">,</span><span class="w"> </span><span class="n">resultCode</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">requestCode</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// If the browser session ends, close the app</span>
+<span class="w">        </span><span class="n">finish</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>For the signaling channel, I simply use a modified version of
+<a class="reference external" href="https://github.com/EricssonResearch/openwebrtc-examples/blob/master/android/NativeCall/app/src/main/java/com/ericsson/research/owr/examples/nativecall/SignalingChannel.java">OpenWebRTC simple signaling channel for
+Android</a>.
+It is lightweight and fulfills the purpose entierly, so why recode my
+own thing?</p>
+<p>In the app, the signaling channel is obvisously not used for WebRTC,
+since it will be handled in a separate browser, but it is of the utmost
+importance because it receives user commands to move the robot.</p>
+<p>EDIT: I changed this behaviour <a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-enhancements.html">in new
+versions</a>.
+Now, user commands use an <tt class="docutils literal">RTCDataChannel</tt> rather than the signaling
+channel, allowing to reduce latency.</p>
+<div class="highlight"><pre><span></span><span class="nd">@Override</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">synchronized</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onMessage</span><span class="p">(</span><span class="kd">final</span><span class="w"> </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">json</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">json</span><span class="p">.</span><span class="na">has</span><span class="p">(</span><span class="s">&quot;control&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">control</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json</span><span class="p">.</span><span class="na">optJSONObject</span><span class="p">(</span><span class="s">&quot;control&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">control</span><span class="p">.</span><span class="na">getInt</span><span class="p">(</span><span class="s">&quot;left&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">control</span><span class="p">.</span><span class="na">getInt</span><span class="p">(</span><span class="s">&quot;right&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="n">setControl</span><span class="p">(</span><span class="n">left</span><span class="p">,</span><span class="w"> </span><span class="n">right</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">JSONException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">e</span><span class="p">.</span><span class="na">printStackTrace</span><span class="p">();</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// Send motor control command, values are in percent</span>
+<span class="kd">private</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">setControl</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">left</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">right</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">mSerialThread</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">mSerialThread</span><span class="p">.</span><span class="na">writeln</span><span class="p">(</span><span class="s">&quot;L &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">left</span><span class="p">);</span><span class="w">  </span><span class="c1">// left</span>
+<span class="w">        </span><span class="n">mSerialThread</span><span class="p">.</span><span class="na">writeln</span><span class="p">(</span><span class="s">&quot;R &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">right</span><span class="p">);</span><span class="w"> </span><span class="c1">// right</span>
+<span class="w">        </span><span class="n">mSerialThread</span><span class="p">.</span><span class="na">writeln</span><span class="p">(</span><span class="s">&quot;C&quot;</span><span class="p">);</span><span class="w">          </span><span class="c1">// commit</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p><strong>Javascript frontend and backend</strong></p>
+<p>Since the robot uses a browser to handle the WebRTC session, the
+Javascript client must handle active mode (for the user) and passive
+mode (for the robot).</p>
+<div class="highlight"><pre><span></span><span class="c1">// Check WebRTC is available</span>
+<span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">navigator</span><span class="p">.</span><span class="nx">mediaDevices</span><span class="p">.</span><span class="nx">getUserMedia</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">displayMessage</span><span class="p">(</span><span class="s2">&quot;Browser not compatible&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Get a local stream</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">constraints</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">audio</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nx">video</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">};</span>
+<span class="nx">navigator</span><span class="p">.</span><span class="nx">mediaDevices</span><span class="p">.</span><span class="nx">getUserMedia</span><span class="p">(</span><span class="nx">constraints</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">stream</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">localStream</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">stream</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// Set self view</span>
+<span class="w">        </span><span class="nx">selfView</span><span class="p">.</span><span class="nx">srcObject</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">stream</span><span class="p">;</span>
+<span class="w">        </span><span class="nx">selfView</span><span class="p">.</span><span class="nx">style</span><span class="p">.</span><span class="nx">visibility</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;visible&quot;</span><span class="p">;</span>
+<span class="w">        </span><span class="nx">selfView</span><span class="p">.</span><span class="nx">onloadedmetadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="p">(</span><span class="nx">evt</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nx">selfView</span><span class="p">.</span><span class="nx">play</span><span class="p">();</span>
+<span class="w">        </span><span class="p">};</span>
+
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="nx">active</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// If active, call button triggers peerJoin()</span>
+<span class="w">            </span><span class="nx">callButton</span><span class="p">.</span><span class="nx">onclick</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nx">callButton</span><span class="p">.</span><span class="nx">disabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+<span class="w">                </span><span class="nx">peerJoin</span><span class="p">();</span>
+<span class="w">            </span><span class="p">};</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// If not active, call peerJoin() directly</span>
+<span class="w">            </span><span class="nx">peerJoin</span><span class="p">();</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">})</span>
+<span class="w">    </span><span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">logError</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+<span class="w">        </span><span class="nx">displayMessage</span><span class="p">(</span><span class="s2">&quot;Media device not available&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">});</span>
+</pre></div>
+<p>For its signaling channel, the Javascript client also use a modified
+version of <a class="reference external" href="https://github.com/EricssonResearch/openwebrtc-examples/blob/master/web/client/signaling_channel.js">OpenWebRTC simple signaling
+channel</a>.
+Either the arrows on the page or the keyboard can be used for user
+input, and controls are sent over the channel just like WebRTC
+signaling. Please check <a class="reference external" href="https://github.com/paullouisageneau/telebot">the
+repository</a> for the
+complete source code.</p>
+<div class="highlight"><pre><span></span><span class="c1">// Send new controls to peer</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">updateControl</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="nx">controlContainer</span><span class="p">.</span><span class="nx">style</span><span class="p">.</span><span class="nx">display</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">left</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="nx">controlUp</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">left</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mf">1</span><span class="p">;</span>
+<span class="w">        </span><span class="nx">right</span><span class="o">+=</span><span class="w"> </span><span class="mf">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="nx">controlDown</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">left</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="o">-</span><span class="mf">0.70</span><span class="p">;</span>
+<span class="w">        </span><span class="nx">right</span><span class="o">+=</span><span class="w"> </span><span class="o">-</span><span class="mf">0.70</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="nx">controlLeft</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">min</span><span class="p">(</span><span class="nx">left</span><span class="w">  </span><span class="o">-</span><span class="w"> </span><span class="mf">0.50</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">);</span>
+<span class="w">        </span><span class="nx">right</span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">max</span><span class="p">(</span><span class="nx">right</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.30</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="nx">controlRight</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">max</span><span class="p">(</span><span class="nx">left</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="mf">0.30</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">);</span>
+<span class="w">        </span><span class="nx">right</span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">min</span><span class="p">(</span><span class="nx">right</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.50</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">power</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">100</span><span class="p">;</span>
+<span class="w">    </span><span class="nx">left</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">round</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">min</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">max</span><span class="p">(</span><span class="nx">left</span><span class="p">,</span><span class="w">  </span><span class="o">-</span><span class="mf">1</span><span class="p">),</span><span class="w"> </span><span class="mf">1</span><span class="p">)</span><span class="o">*</span><span class="nx">power</span><span class="p">);</span>
+<span class="w">    </span><span class="nx">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">round</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">min</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">max</span><span class="p">(</span><span class="nx">right</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1</span><span class="p">),</span><span class="w"> </span><span class="mf">1</span><span class="p">)</span><span class="o">*</span><span class="nx">power</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="nx">peer</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">peer</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span>
+<span class="w">            </span><span class="s2">&quot;control&quot;</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="s2">&quot;left&quot;</span><span class="o">:</span><span class="w"> </span><span class="nx">left</span><span class="p">,</span>
+<span class="w">                </span><span class="s2">&quot;right&quot;</span><span class="o">:</span><span class="w"> </span><span class="nx">right</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}));</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>The node.js server is a slightly modified version of <a class="reference external" href="https://github.com/EricssonResearch/openwebrtc-examples/blob/master/web/channel_server.js">OpenWebRTC example
+server</a>.
+It is deployed behind an Apache server with HTTPS configured with <a class="reference external" href="https://letsencrypt.org/">Let's
+Encrypt</a>.</p>
+<p>I also installed <a class="reference external" href="https://github.com/coturn/coturn">coturn</a>
+<a class="reference external" href="https://en.wikipedia.org/wiki/STUN">STUN</a>/<a class="reference external" href="https://en.wikipedia.org/wiki/Traversal_Using_Relays_around_NAT">TURN</a>
+server to help WebRTC session establishment when
+<a class="reference external" href="https://en.wikipedia.org/wiki/Network_address_translation">NAT</a> is
+in use, <em>i.e.</em> in most of the use cases. I can't wait for ubiquitous
+IPv6 network access to bring the death of NAT.</p>
+<p>Thanks to the HTML5 interface, you can use the Telebot from any device
+with a recent browser equipped for video and sound capture, even another
+smartphone. However, it won't work out of the box on an iPhone, since
+iOS does not have any major browser available with WebRTC support as of
+today, even through this standard feature has been available on other
+platforms for years...</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/telebot_interface.jpg"><img alt="The interface in Firefox for Android" src="https://blog.chapelierfou.org/images/telebot_interface-small.jpg" style="width: 370px;" /></a>
+<p class="caption">The interface in Firefox for Android</p>
+</div>
+<p>Eventually, it works wonderfully! I have only added a microphone to the
+smartphone to enhance sound capture.</p>
+<div class="figure">
+<img alt="The finished robot moving around" src="https://blog.chapelierfou.org/images/telebot.gif" style="width: 370px;" />
+<p class="caption">They see me rollin’, they hatin’</p>
+</div>
+<p>EDIT: You can read about subsequent enhancements
+<a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-enhancements.html">here</a>,
+in particular the use of an <tt class="docutils literal">RTCDataChannel</tt> for controls.</p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

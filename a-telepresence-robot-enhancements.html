@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Robotics">
+    <meta property="article:published_time" content="2017-03-30">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >A telepresence robot - Enhancements</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">30/03/2017</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>In this article, I'm going to describe architecture enhancements for the
+control system of the WebRTC-controlled telepresence robot I built a few
+months ago, presented <a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html">in a previous
+article</a>.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20170330_185921.jpg"><img alt="The four-wheel base of the telepresence robot" src="https://blog.chapelierfou.org/images/IMG_20170330_185921-small.jpg" /></a>
+<p class="caption">The four-wheel base of the telepresence robot</p>
+</div>
+<p>Since I did not manage to have a satisfying
+<a class="reference external" href="https://webrtc.org/">WebRTC</a> support directly in a native Android
+app, I previously <a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html">settled for a
+hack</a>
+where the smartphone of the Telebot uses two different connections to
+the signaling channel: one to receive user control in the Android app,
+and one to handle the WebRTC session in the browser.</p>
+<p>This was bad for two reasons:</p>
+<ul class="simple">
+<li>The robot can enter an incoherent state if one connection is closed
+and not the other.</li>
+<li>User control commands do not benefit from WebRTC, instead they travel
+through the server, adding latency and jitter.</li>
+</ul>
+<p>The idea for the new architecture is to have the Android app run a small
+HTTP server in background that can accept motor control commands and
+send them to the Bluetooth device. We will send users commands on an
+<tt class="docutils literal">RTCDataChannel</tt> and forward them to this small HTTP server with
+JavaScript in the browser.</p>
+<div class="figure">
+<img alt="General schematic of the enhanced architecture" src="https://blog.chapelierfou.org/wp-content/uploads/2017/03/schema_telebot_arch.png" />
+<p class="caption">General schematic of the enhanced architecture</p>
+</div>
+<p>Let's put together a tiny single-threaded HTTP server for our Android
+app. For the sake of simplicity, requests and responses content will
+be formatted as JSON. I know the implementation is only partial, but
+it is totally sufficient and standard-compliant for our limited needs.</p>
+<p>In particular, we need to properly handle <a class="reference external" href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS">Cross-Origin Resource Sharing
+(CORS)</a>
+because since the server is local, we are going to hit it with
+<a class="reference external" href="https://en.wikipedia.org/wiki/Same-origin_policy">cross-origin
+requests</a>.</p>
+<div class="highlight"><pre><span></span><span class="cm">/**</span>
+<span class="cm"> * Tiny HTTP server implementation for JSON requests</span>
+<span class="cm"> * HTTP access control (CORS) is supported</span>
+<span class="cm"> */</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">HttpServer</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">Runnable</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">mPort</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">ServerSocket</span><span class="w"> </span><span class="n">mServerSocket</span><span class="p">;</span>
+<span class="w">    </span><span class="o">[</span><span class="p">...</span><span class="o">]</span>
+
+<span class="w">    </span><span class="cm">/**</span>
+<span class="cm">     * Server main loop</span>
+<span class="cm">     */</span>
+<span class="w">    </span><span class="nd">@Override</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// Open the server socket</span>
+<span class="w">            </span><span class="n">mServerSocket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ServerSocket</span><span class="p">(</span><span class="n">mPort</span><span class="p">);</span>
+
+<span class="w">            </span><span class="c1">// Loop on accepted connections</span>
+<span class="w">            </span><span class="k">while</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">Socket</span><span class="w"> </span><span class="n">socket</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mServerSocket</span><span class="p">.</span><span class="na">accept</span><span class="p">();</span>
+<span class="w">                </span><span class="n">handle</span><span class="p">(</span><span class="n">socket</span><span class="p">);</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="p">(</span><span class="n">SocketException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// Stopped</span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="p">(</span><span class="n">IOException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">e</span><span class="p">.</span><span class="na">printStackTrace</span><span class="p">();</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/**</span>
+<span class="cm">     * Receive an HTTP request and send the response</span>
+<span class="cm">     */</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">handle</span><span class="p">(</span><span class="n">Socket</span><span class="w"> </span><span class="n">socket</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">BufferedReader</span><span class="w"> </span><span class="n">reader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">        </span><span class="n">PrintStream</span><span class="w"> </span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">reader</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">BufferedReader</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">InputStreamReader</span><span class="p">(</span><span class="n">socket</span><span class="p">.</span><span class="na">getInputStream</span><span class="p">()));</span>
+<span class="w">            </span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">PrintStream</span><span class="p">(</span><span class="n">socket</span><span class="p">.</span><span class="na">getOutputStream</span><span class="p">());</span>
+
+<span class="w">            </span><span class="c1">// Read request line</span>
+<span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">requestLine</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reader</span><span class="p">.</span><span class="na">readLine</span><span class="p">();</span>
+<span class="w">            </span><span class="n">Log</span><span class="p">.</span><span class="na">d</span><span class="p">(</span><span class="n">TAG</span><span class="p">,</span><span class="w"> </span><span class="n">requestLine</span><span class="p">);</span>
+
+<span class="w">            </span><span class="c1">// Parse request line</span>
+<span class="w">            </span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">tokens</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">requestLine</span><span class="p">.</span><span class="na">split</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">);</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">tokens</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">sendResponse</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;400 Bad Request&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">);</span>
+<span class="w">                </span><span class="k">return</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tokens</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">.</span><span class="na">toUpperCase</span><span class="p">();</span>
+<span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">route</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tokens</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="p">;</span>
+
+<span class="w">            </span><span class="c1">// Read the headers</span>
+<span class="w">            </span><span class="n">Map</span><span class="w"> </span><span class="n">headers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+<span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">line</span><span class="p">;</span>
+<span class="w">            </span><span class="k">while</span><span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="n">line</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reader</span><span class="p">.</span><span class="na">readLine</span><span class="p">()).</span><span class="na">isEmpty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">String</span><span class="o">[]</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">line</span><span class="p">.</span><span class="na">split</span><span class="p">(</span><span class="s">&quot;:&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">                </span><span class="n">headers</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">s</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">.</span><span class="na">trim</span><span class="p">(),</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">s</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="p">.</span><span class="na">trim</span><span class="p">()</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">));</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">            </span><span class="c1">// Get the content length</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">length</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">headers</span><span class="p">.</span><span class="na">containsKey</span><span class="p">(</span><span class="s">&quot;Content-Length&quot;</span><span class="p">))</span>
+<span class="w">                </span><span class="n">length</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Integer</span><span class="p">.</span><span class="na">parseInt</span><span class="p">(</span><span class="n">headers</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="s">&quot;Content-Length&quot;</span><span class="p">));</span>
+
+<span class="w">            </span><span class="c1">// Get the content and parse it</span>
+<span class="w">            </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">length</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="kt">char</span><span class="o">[]</span><span class="w"> </span><span class="n">buffer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">char</span><span class="o">[</span><span class="n">length</span><span class="o">]</span><span class="p">;</span>
+<span class="w">                </span><span class="n">reader</span><span class="p">.</span><span class="na">read</span><span class="p">(</span><span class="n">buffer</span><span class="p">);</span>
+
+<span class="w">                </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">content</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">JSONObject</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">String</span><span class="p">(</span><span class="n">buffer</span><span class="p">));</span>
+<span class="w">                </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="p">(</span><span class="n">JSONException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">e</span><span class="p">.</span><span class="na">printStackTrace</span><span class="p">();</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">            </span><span class="c1">// Handle CORS preflight OPTIONS request</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">method</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="s">&quot;OPTIONS&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">sendResponse</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;200 OK&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">);</span>
+<span class="w">                </span><span class="k">if</span><span class="p">(</span><span class="n">headers</span><span class="p">.</span><span class="na">containsKey</span><span class="p">(</span><span class="s">&quot;Access-Control-Request-Method&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;Access-Control-Allow-Methods: POST, GET\r\n&quot;</span><span class="p">);</span>
+<span class="w">                    </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;Access-Control-Allow-Headers: Content-Type\r\n&quot;</span><span class="p">);</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">                </span><span class="k">else</span><span class="w"> </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;Allow: POST, GET\r\n&quot;</span><span class="p">);</span>
+<span class="w">                </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;\r\n&quot;</span><span class="p">);</span>
+<span class="w">                </span><span class="n">output</span><span class="p">.</span><span class="na">flush</span><span class="p">();</span>
+<span class="w">                </span><span class="k">return</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">            </span><span class="c1">// Process the request</span>
+<span class="w">            </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">response</span><span class="p">;</span>
+<span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">process</span><span class="p">(</span><span class="n">method</span><span class="p">,</span><span class="w"> </span><span class="n">route</span><span class="p">,</span><span class="w"> </span><span class="n">content</span><span class="p">);</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="p">(</span><span class="n">Exception</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">e</span><span class="p">.</span><span class="na">printStackTrace</span><span class="p">();</span>
+<span class="w">                </span><span class="n">sendResponse</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;500 Internal Server Error&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">);</span>
+<span class="w">                </span><span class="k">return</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">response</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">sendResponse</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;404 Not Found&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">);</span>
+<span class="w">                </span><span class="k">return</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">            </span><span class="c1">// Send the response</span>
+<span class="w">            </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">response</span><span class="p">.</span><span class="na">toString</span><span class="p">().</span><span class="na">getBytes</span><span class="p">();</span>
+<span class="w">            </span><span class="n">sendResponse</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;200 OK&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">);</span>
+<span class="w">            </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;Content-Type: application/json\r\n&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;Content-Length: &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;\r\n&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;\r\n&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="n">output</span><span class="p">.</span><span class="na">write</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+<span class="w">            </span><span class="n">output</span><span class="p">.</span><span class="na">flush</span><span class="p">();</span>
+
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="p">(</span><span class="n">IOException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">e</span><span class="p">.</span><span class="na">printStackTrace</span><span class="p">();</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="k">if</span><span class="p">(</span><span class="n">output</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="n">output</span><span class="p">.</span><span class="na">close</span><span class="p">();</span>
+<span class="w">                </span><span class="k">if</span><span class="p">(</span><span class="n">reader</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="n">reader</span><span class="p">.</span><span class="na">close</span><span class="p">();</span>
+<span class="w">                </span><span class="n">socket</span><span class="p">.</span><span class="na">close</span><span class="p">();</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="p">(</span><span class="n">IOException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">e</span><span class="p">.</span><span class="na">printStackTrace</span><span class="p">();</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/**</span>
+<span class="cm">     * Send an HTTP response on stream</span>
+<span class="cm">     */</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendResponse</span><span class="p">(</span><span class="n">PrintStream</span><span class="w"> </span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">response</span><span class="p">,</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="n">otherHeaders</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;HTTP/1.1 &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;\r\n&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;Connection: close\r\n&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;Access-Control-Allow-Origin: *\r\n&quot;</span><span class="p">);</span><span class="w"> </span><span class="c1">// CORS</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">otherHeaders</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">output</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">&quot;\r\n&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="n">output</span><span class="p">.</span><span class="na">flush</span><span class="p">();</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="cm">/**</span>
+<span class="cm">     * Process a request, should be overridden in subclasses</span>
+<span class="cm">     */</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">JSONObject</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">method</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">route</span><span class="p">,</span><span class="w"> </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">content</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>Now that our small HTTP server is ready, we have to handle the control
+requests by specializing the class.</p>
+<div class="highlight"><pre><span></span><span class="o">[</span><span class="p">...</span><span class="o">]</span>
+<span class="cm">/**</span>
+<span class="cm"> * Process a control request</span>
+<span class="cm"> */</span>
+<span class="nd">@Override</span>
+<span class="kd">public</span><span class="w"> </span><span class="n">JSONObject</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">method</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">route</span><span class="p">,</span><span class="w"> </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">content</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">route</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">route</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="s">&quot;/control&quot;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">       </span><span class="k">if</span><span class="p">(</span><span class="n">method</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="s">&quot;POST&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">content</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="n">mLeft</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">content</span><span class="p">.</span><span class="na">getInt</span><span class="p">(</span><span class="s">&quot;left&quot;</span><span class="p">);</span>
+<span class="w">           </span><span class="n">mRight</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">content</span><span class="p">.</span><span class="na">getInt</span><span class="p">(</span><span class="s">&quot;right&quot;</span><span class="p">);</span>
+<span class="w">           </span><span class="n">mHandler</span><span class="p">.</span><span class="na">setControl</span><span class="p">(</span><span class="n">mLeft</span><span class="p">,</span><span class="w"> </span><span class="n">mRight</span><span class="p">);</span>
+<span class="w">       </span><span class="p">}</span>
+
+<span class="w">        </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">JSONObject</span><span class="p">();</span>
+<span class="w">        </span><span class="n">response</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="s">&quot;left&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">mLeft</span><span class="p">);</span>
+<span class="w">        </span><span class="n">response</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="s">&quot;right&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">mRight</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">response</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>The <tt class="docutils literal">setControl()</tt> function writes the command over the Bluetooth
+serial connection.</p>
+<div class="highlight"><pre><span></span><span class="o">[</span><span class="p">...</span><span class="o">]</span>
+<span class="cm">/**</span>
+<span class="cm"> * Send motor control command, values are in percent</span>
+<span class="cm"> */</span>
+<span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">setControl</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">left</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">right</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">mSerialThread</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">mSerialThread</span><span class="p">.</span><span class="na">writeln</span><span class="p">(</span><span class="s">&quot;L &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">left</span><span class="p">);</span><span class="w">  </span><span class="c1">// left</span>
+<span class="w">        </span><span class="n">mSerialThread</span><span class="p">.</span><span class="na">writeln</span><span class="p">(</span><span class="s">&quot;R &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">right</span><span class="p">);</span><span class="w"> </span><span class="c1">// right</span>
+<span class="w">        </span><span class="n">mSerialThread</span><span class="p">.</span><span class="na">writeln</span><span class="p">(</span><span class="s">&quot;C&quot;</span><span class="p">);</span><span class="w">          </span><span class="c1">// commit</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>We are now able to send requests containing control commands from the
+JavaScript code!</p>
+<div class="highlight"><pre><span></span><span class="p">[...]</span>
+<span class="c1">// Local control API</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">localControlUrl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;http://127.0.0.1:11698/control&quot;</span><span class="p">;</span>
+
+<span class="c1">// Send control to local API</span>
+<span class="kd">function</span><span class="w"> </span><span class="nx">localControl</span><span class="p">(</span><span class="nx">left</span><span class="p">,</span><span class="w"> </span><span class="nx">right</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">xhr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">XMLHttpRequest</span><span class="p">();</span>
+<span class="w">    </span><span class="nx">xhr</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">localControlUrl</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">);</span>
+<span class="w">    </span><span class="nx">xhr</span><span class="p">.</span><span class="nx">setRequestHeader</span><span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;application/json&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="nx">xhr</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span>
+<span class="w">        </span><span class="nx">left</span><span class="o">:</span><span class="w"> </span><span class="nx">left</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">right</span><span class="o">:</span><span class="w"> </span><span class="nx">right</span>
+<span class="w">    </span><span class="p">}));</span>
+<span class="p">}</span>
+</pre></div>
+<p>This assumes that resources on <tt class="docutils literal">127.0.0.1</tt> are not considered <a class="reference external" href="https://developers.google.com/web/fundamentals/security/prevent-mixed-content/what-is-mixed-content">mixed
+content</a>,
+even if accessed over HTTP from an HTTPS page. The <a class="reference external" href="https://www.w3.org/TR/mixed-content/">W3C
+specification</a> is strangely not
+clear about that, but it seems to me this is the right behaviour, since
+you can't get a TLS X.509 certificate for localhost. <a class="reference external" href="https://bugs.chromium.org/p/chromium/issues/detail?id=461808">Chromium allows
+access</a>,
+anyway.</p>
+<p>The last step is to set up the <tt class="docutils literal">RTCDataChannel</tt>. The user side opens
+it, and the robot side accepts it:</p>
+<div class="highlight"><pre><span></span><span class="p">[...]</span>
+<span class="k">if</span><span class="p">(</span><span class="nx">active</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Create control data channel</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">controlChannelOptions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">ordered</span><span class="o">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="nx">controlChannel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">peerConnection</span><span class="p">.</span><span class="nx">createDataChannel</span><span class="p">(</span><span class="s2">&quot;control&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">controlChannelOptions</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Accept control data channel</span>
+<span class="w">    </span><span class="nx">peerConnection</span><span class="p">.</span><span class="nx">ondatachannel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="p">(</span><span class="nx">evt</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="nx">evt</span><span class="p">.</span><span class="nx">channel</span><span class="p">.</span><span class="nx">label</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;control&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nx">controlChannel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">evt</span><span class="p">.</span><span class="nx">channel</span><span class="p">;</span>
+<span class="w">            </span><span class="nx">controlChannel</span><span class="p">.</span><span class="nx">onmessage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="p">(</span><span class="nx">evt</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="kd">var</span><span class="w"> </span><span class="nx">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">evt</span><span class="p">.</span><span class="nx">data</span><span class="p">);</span>
+<span class="w">                </span><span class="k">if</span><span class="p">(</span><span class="nx">message</span><span class="p">.</span><span class="nx">control</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="kd">var</span><span class="w"> </span><span class="nx">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">parseInt</span><span class="p">(</span><span class="nx">message</span><span class="p">.</span><span class="nx">control</span><span class="p">.</span><span class="nx">left</span><span class="p">);</span>
+<span class="w">                    </span><span class="kd">var</span><span class="w"> </span><span class="nx">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">parseInt</span><span class="p">(</span><span class="nx">message</span><span class="p">.</span><span class="nx">control</span><span class="p">.</span><span class="nx">right</span><span class="p">);</span>
+<span class="w">                    </span><span class="nx">localControl</span><span class="p">(</span><span class="nx">left</span><span class="p">,</span><span class="w"> </span><span class="nx">right</span><span class="p">);</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">};</span>
+<span class="w">            </span><span class="nx">controlChannel</span><span class="p">.</span><span class="nx">onclose</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kd">function</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nx">localControl</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">);</span>
+<span class="w">            </span><span class="p">};</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="p">}</span>
+</pre></div>
+<p>Finally, it works! It is way easier to move the robot thanks to the
+reduced latency. Of course, the complete source code is available on <a class="reference external" href="https://github.com/paullouisageneau/telebot">my
+repository on GitHub</a>.</p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

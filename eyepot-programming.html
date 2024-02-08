@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Robotics">
+    <meta property="article:published_time" content="2018-03-17">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >Eyepot - Programming</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">17/03/2018</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/video.html">Video</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>Let's program the robot I built in <a class="reference external" href="https://blog.chapelierfou.org/eyepot-a-creepy-teapot.html">the previous article</a>!</p>
+<p>The Eyepot works by using in conjunction a <a class="reference external" href="https://www.raspberrypi.org/products/raspberry-pi-zero-w/">Raspberry Pi Zero W</a> and an <a class="reference external" href="https://store.arduino.cc/usa/arduino-pro-mini">Arduino Pro Mini</a> connected by a serial link. Therefore, we'll write the Arduino code first, then a Python program for the Raspberry Pi. Then, we'll setup remote control from a web browser.</p>
+<p>You can find the entire source code for the project licensed under <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a> on <a class="reference external" href="https://github.com/paullouisageneau/eyepot">my repository on GitHub</a>.</p>
+<div class="figure">
+<img alt="The finished Eyepot moving" src="https://blog.chapelierfou.org/images/eyepot_loop.gif" style="width: 480px;" />
+<p class="caption">The finished Eyepot moving</p>
+</div>
+<p><strong>Arduino program</strong></p>
+<p>The Arduino Pro Mini is responsible for driving the eight servos of the legs. Commands to specify target angles are sent from the Raspberry Pi through a serial link.</p>
+<p>The custom serial protocol is text-based and quite simple. It can easily be typed manually when debugging, but it is still compact enough to allow short transmission times even at low bitrates. Each line contains a one-character command, an optional space, and an optional parameter as a base-10 integer. Implemeted commands are as follows:</p>
+<ul class="simple">
+<li><tt class="docutils literal">0</tt> to <tt class="docutils literal">7</tt>: store target angle for corresponding servo (0 to 7)</li>
+<li><tt class="docutils literal">R</tt>: reset stored target angle to default for each servo</li>
+<li><tt class="docutils literal">C</tt>: commit stored target angles (apply the stored angle for each servo)</li>
+</ul>
+<p>So, for instance, the commands to move one leg, whose hip and knee servos are respectively connected to pin 0 and 4, is:</p>
+<pre class="code literal-block">
+090
+445
+C
+</pre>
+<p>The Arduino program reads commands on the serial and applies them. The servos default positions are defined so the robot is standing, and the program also features tunable offsets to precisely set the center position of each servo.</p>
+<div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;Servo.h&gt;</span>
+
+<span class="c1">// ---------- Pin setup ----------</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">servoPins</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">11</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">};</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">offsetAngles</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">-10</span><span class="p">,</span><span class="w"> </span><span class="mi">-5</span><span class="p">,</span><span class="w"> </span><span class="mi">-10</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">-5</span><span class="w"> </span><span class="p">};</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">defaultAngles</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">135</span><span class="p">,</span><span class="w"> </span><span class="mi">135</span><span class="p">,</span><span class="w"> </span><span class="mi">45</span><span class="p">,</span><span class="w"> </span><span class="mi">45</span><span class="p">,</span><span class="w"> </span><span class="mi">90</span><span class="p">,</span><span class="w"> </span><span class="mi">90</span><span class="p">,</span><span class="w"> </span><span class="mi">90</span><span class="p">,</span><span class="w"> </span><span class="mi">90</span><span class="w"> </span><span class="p">};</span>
+
+<span class="n">Servo</span><span class="w"> </span><span class="n">servos</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+<span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">angles</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+
+<span class="n">String</span><span class="w"> </span><span class="n">inputString</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">;</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="c1">// Init serial</span>
+<span class="w">    </span><span class="n">Serial</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="mi">9600</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Init servos</span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">8</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">defaultAngles</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="w">        </span><span class="n">servos</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">attach</span><span class="p">(</span><span class="n">servoPins</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="w">        </span><span class="n">servos</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">write</span><span class="p">(</span><span class="n">offsetAngles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="c1">// Read commands on serial</span>
+<span class="w">    </span><span class="k">while</span><span class="p">(</span><span class="n">Serial</span><span class="p">.</span><span class="n">available</span><span class="p">())</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">char</span><span class="w"> </span><span class="n">chr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="p">)</span><span class="n">Serial</span><span class="p">.</span><span class="n">read</span><span class="p">();</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">chr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">&#39;\n&#39;</span><span class="p">)</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">chr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">&#39;\r&#39;</span><span class="p">)</span>
+<span class="w">                </span><span class="n">inputString</span><span class="o">+=</span><span class="w"> </span><span class="n">chr</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="p">(</span><span class="n">inputString</span><span class="p">.</span><span class="n">length</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// Parse command</span>
+<span class="w">            </span><span class="kt">char</span><span class="w"> </span><span class="n">cmd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">toupper</span><span class="p">(</span><span class="n">inputString</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">param</span><span class="p">;</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">pos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">            </span><span class="k">while</span><span class="p">(</span><span class="n">pos</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">inputString</span><span class="p">.</span><span class="n">length</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">inputString</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39; &#39;</span><span class="p">)</span><span class="w"> </span><span class="o">++</span><span class="n">pos</span><span class="p">;</span>
+<span class="w">                </span><span class="n">param</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">inputString</span><span class="p">.</span><span class="n">substring</span><span class="p">(</span><span class="n">pos</span><span class="p">);</span>
+
+<span class="w">            </span><span class="c1">// Execute command</span>
+<span class="w">            </span><span class="k">if</span><span class="p">(</span><span class="n">cmd</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="sc">&#39;0&#39;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">cmd</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="sc">&#39;8&#39;</span><span class="p">)</span><span class="w"> </span><span class="c1">// Servo</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">int</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="kt">int</span><span class="p">(</span><span class="sc">&#39;0&#39;</span><span class="p">);</span>
+<span class="w">                </span><span class="kt">int</span><span class="w"> </span><span class="n">angle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">param</span><span class="p">.</span><span class="n">toInt</span><span class="p">();</span>
+<span class="w">                </span><span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">angle</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="p">(</span><span class="n">cmd</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;R&#39;</span><span class="p">)</span><span class="w">        </span><span class="c1">// Reset</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">8</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span>
+<span class="w">                    </span><span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">defaultAngles</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">            </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="p">(</span><span class="n">cmd</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;C&#39;</span><span class="p">)</span><span class="w">        </span><span class="c1">// Commit</span>
+<span class="w">            </span><span class="p">{</span>
+<span class="w">                </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">8</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span>
+<span class="w">                    </span><span class="n">servos</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">write</span><span class="p">(</span><span class="n">offsetAngles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">            </span><span class="n">inputString</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p><strong>Control program</strong></p>
+<p>The Raspberry Pi Zero W, on which I installed a <a class="reference external" href="https://www.raspberrypi.org/documentation/installation/installing-images/">Raspbian lite distribution</a>, runs a Python program implementing the walk cycle.</p>
+<p>As a side note, since the PI Zero W only features Wifi as network interface, headless setup (without a screen) can be a bit tricky, but the process is actually far from cumbersome if you follow the right steps:</p>
+<ul class="simple">
+<li>Put the SD card in your computer</li>
+<li>Write the image file: <tt class="docutils literal"># dd <span class="pre">if=raspbian-stretch-lite.img</span> <span class="pre">of=/dev/mmcblk0</span> bs=4096</tt></li>
+<li>Mount the boot partition: <tt class="docutils literal"># mkdir /mnt/boot &amp;&amp; mount /dev/mmcblk0p1 /mnt/boot</tt></li>
+<li>Put an empty <tt class="docutils literal">ssh</tt> file to enable SSH: <tt class="docutils literal"># touch /mnt/boot/ssh</tt></li>
+<li>Put a <tt class="docutils literal">/mnt/boot/wpa_supplicant.conf</tt> file with the following content to enable Wifi:</li>
+</ul>
+<pre class="code literal-block">
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=FR
+
+network={
+    ssid=&quot;NETWORK_NAME&quot;
+    psk=&quot;NETWORK_KEY&quot;
+}
+</pre>
+<ul class="simple">
+<li>Unmount the partition: <tt class="docutils literal"># umount /dev/mmcblk0p1</tt></li>
+<li>Put the SD card in the Raspberry Pi. On boot, it should connect to the Wifi network, and you can then connect to it via SSH using its IP address, which can be retrieved from your router DHCP server's device list. The default user is <tt class="docutils literal">pi</tt> and the default password is <tt class="docutils literal">raspberry</tt>. You should of course change it quickly.</li>
+</ul>
+<p>Now, back to business: the Python control program sends the servo angles to the Arduino board via the serial link. Especially, the <tt class="docutils literal">Control</tt> class encapsulates the different moves.</p>
+<div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Control</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="s1">&#39;/dev/serial0&#39;</span><span class="p">,</span> <span class="n">baudrate</span> <span class="o">=</span> <span class="mi">9600</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ser</span> <span class="o">=</span> <span class="n">serial</span><span class="o">.</span><span class="n">Serial</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">baudrate</span><span class="p">)</span>
+
+    <span class="c1"># leg angle &gt; 0 =&gt; down</span>
+    <span class="k">def</span> <span class="nf">leg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="mi">90</span><span class="o">+</span><span class="n">angle</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="mi">90</span><span class="o">-</span><span class="n">angle</span><span class="p">)</span>
+
+    <span class="c1"># hip angle &gt; 0 =&gt; front</span>
+    <span class="k">def</span> <span class="nf">hip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="mi">4</span><span class="o">+</span><span class="n">i</span><span class="p">,</span> <span class="mi">90</span><span class="o">+</span><span class="n">angle</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="mi">90</span><span class="o">-</span><span class="n">angle</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">servo</span><span class="p">,</span> <span class="n">angle</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">servo</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">servo</span> <span class="o">&lt;</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">angle</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">180</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:s}{:d}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;0&#39;</span><span class="p">)</span><span class="o">+</span><span class="n">servo</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">angle</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ser</span><span class="o">.</span><span class="n">write</span><span class="p">((</span><span class="n">command</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">walk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">forward</span><span class="p">,</span> <span class="n">sideward</span><span class="p">,</span> <span class="n">rotation</span><span class="p">):</span>
+        <span class="n">fu</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">su</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">ru</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span><span class="o">*</span><span class="n">forward</span> <span class="o">+</span> <span class="n">s</span><span class="o">*</span><span class="n">sideward</span> <span class="o">+</span> <span class="n">r</span><span class="o">*</span><span class="n">rotation</span> <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">fu</span><span class="p">,</span> <span class="n">su</span><span class="p">,</span> <span class="n">ru</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pattern2</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+</pre></div>
+<p>Eventually, we need the actual walk cycle. It takes four parameters:</p>
+<ul class="simple">
+<li><tt class="docutils literal">ldown</tt>: the knee angle when a leg is down</li>
+<li><tt class="docutils literal">lup</tt>: the knee angle when a leg is up</li>
+<li><tt class="docutils literal">hangles</tt>: the ankle angles vector describing each leg contribution</li>
+<li><tt class="docutils literal">step</tt>: the step duration in seconds</li>
+</ul>
+<p>Each step consists in two different legs position. For each position, we apply new angles for the ones that need to be changed, we commit the new angles, and we sleep.</p>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">_pattern2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ldown</span><span class="p">,</span> <span class="n">lup</span><span class="p">,</span> <span class="n">hangles</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">lup</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ldown</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ldown</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">lup</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">step</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">hangles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">hangles</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">step</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ldown</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">ldown</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">step</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span> <span class="n">hangles</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span> <span class="n">hangles</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">step</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ldown</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">lup</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">lup</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">ldown</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">step</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">hangles</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">hangles</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">step</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ldown</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">leg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">ldown</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">step</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span> <span class="n">hangles</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">hip</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span> <span class="n">hangles</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">step</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+<p><strong>Remote control</strong></p>
+<p>For now, the robot will be connected to Wifi and configured to be remotely accessible via a web browser. The web page will display the video feedback and allow to control the robot.</p>
+<p>To this end, we'll combine a few components:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://flask.pocoo.org/">Flask Python framework</a> to create an app hosting the control code</li>
+<li><a class="reference external" href="https://www.nginx.com/">NGINX HTTP server</a> as a TLS endpoint and reverse proxy</li>
+<li><a class="reference external" href="https://gstreamer.freedesktop.org/">gstreamer</a> to setup a video streaming pipeline</li>
+<li><a class="reference external" href="https://github.com/meetecho/janus-gateway">Janus WebRTC Gateway</a> to enable the browser to stream the realtime video via WebRTC</li>
+</ul>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/schema_eyepot_software.png"><img alt="Schematic of the relation between software components inside the Eyepot" src="https://blog.chapelierfou.org/images/schema_eyepot_software.png" /></a>
+<p class="caption">Schematic of the relation between software components inside the Eyepot</p>
+</div>
+<p>First of all, let's change the hostname to <tt class="docutils literal">eyepot</tt>:</p>
+<pre class="code literal-block">
+$ sudo hostnamectl set-hostname eyepot
+</pre>
+<p>For security reasons, modern browsers will refuse to run WebRTC sessions on a page from an unsecure origin (the reason is anyone on the network could inject JavaScript code to listen to your microphone or webcam). The issue for us is that this rule is also enforced on a local network. Therefore, we need to generate a TLS certificate and deploy a HTTPS server.</p>
+<p>You can generate a self-signed TLS X.509 certificate with <tt class="docutils literal">openssl</tt>:</p>
+<pre class="code literal-block">
+$ openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout eyepot.key -out eyepot.pem -subj '/CN=eyepot'
+</pre>
+<p>Here I'm using NGINX as a font-end HTTPS server, but another server with support for proxy pass like Apache or Lighttpd would work too.</p>
+<pre class="code literal-block">
+$ sudo apt install nginx-light
+</pre>
+<p>Once <tt class="docutils literal">nginx</tt> is installed, we have to configure it as a reverse proxy for Janus (listening on port 8088) and our Flask app (listening on port 8080), and enable SSL/TLS, in <tt class="docutils literal"><span class="pre">/etc/nginx/sites-enabled/default</span></tt>:</p>
+<pre class="code literal-block">
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+
+    server_name eyepot;
+
+    ssl_certificate     eyepot.pem;
+    ssl_certificate_key eyepot.key;
+
+    location /janus {
+        proxy_pass http://localhost:8088;
+    }
+
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+}
+</pre>
+<p>We can now start <tt class="docutils literal">nginx</tt>:</p>
+<pre class="code literal-block">
+$ sudo systemctl enable nginx
+$ sudo systemctl start nginx
+</pre>
+<p>Janus is not available in Debian Stretch, on which Raspbian is currenty based. Therefore, let's compile and install Janus by following <a class="reference external" href="https://github.com/meetecho/janus-gateway/blob/master/README.md">the instructions</a>. We don't need support for WebRTC data channels here so installing <tt class="docutils literal">usrsctp</tt> is not required.</p>
+<pre class="code literal-block">
+$ sudo apt install git build-essential libmicrohttpd-dev libjansson-dev libnice-dev libssl-dev libsrtp-dev libsofia-sip-ua-dev libglib2.0-dev libopus-dev libogg-dev libcurl4-openssl-dev liblua5.3-dev pkg-config gengetopt libtool automake
+</pre>
+<p>There is a bit of a setback here: Debian Stretch ships version 1.4.5 of <tt class="docutils literal">libsrtp</tt>, however Janus requires version 1.5.x, 1.6.x, or 2.x. Therefore, we have to compile it manually.</p>
+<pre class="code literal-block">
+$ sudo apt purge libsrtp0 libsrtp0-dev
+$ wget https://github.com/cisco/libsrtp/archive/v2.1.0.tar.gz
+$ tar xfv v2.1.0.tar.gz
+$ cd libsrtp-2.1.0
+$ ./configure --enable-openssl --prefix=/usr/local
+$ make shared_library
+$ sudo make install
+$ cd ..
+</pre>
+<p>We can then properly install Janus.</p>
+<pre class="code literal-block">
+$ git clone https://github.com/meetecho/janus-gateway.git
+$ cd janus-gateway
+$ sh autogen.sh
+$ ./configure --disable-docs --prefix=/usr/local
+$ make
+$ sudo make install
+$ sudo cp -r /usr/local/etc/janus /etc/
+</pre>
+<p>Janus binds by default on port 8088 for HTTP. We will use its streaming plugin to stream the video, therefore, after installation, we need to register our video source in the config file <tt class="docutils literal">/etc/janus/janus.plugin.streaming.cfg</tt>:</p>
+<pre class="code literal-block">
+[gst-rpi]
+type = rtp
+id = 1
+description = Raspberry Pi H264 streaming
+audio = no
+video = yes
+videoport = 8000
+videopt = 100
+videortpmap = H264/90000
+videofmtp = profile-level-id=42e028\;packetization-mode=1
+</pre>
+<p>We can now start Janus in background:</p>
+<pre class="code literal-block">
+$ janus -F /etc/janus &amp;
+</pre>
+<p>Now, we need to actually stream the video encoded in H.264 on port 8000. The <tt class="docutils literal">raspivid</tt> program captures the video from the Raspberry Pi camera and the <tt class="docutils literal"><span class="pre">&quot;-o</span> <span class="pre">-&quot;</span></tt> option outputs the H.264 frames on the standard output. We can then pipe them into a <tt class="docutils literal">gstreamer</tt> pipeline to packetize the video and finally send it on UDP port 8000. The parameters on <cite>raspivid</cite> result from a bit of empirical tuning, in particular <tt class="docutils literal">intra</tt>, that specifies the number of frames between keyframes: if it's too high, the video tends to suffer from random freezes in Chrome.</p>
+<p>Note that <tt class="docutils literal"><span class="pre">gst-launch</span></tt> is supposed to be a debug tool, and we should actually create a program using the <tt class="docutils literal">gstreamer</tt> lib. However, this is way sufficient for our needs here.</p>
+<pre class="code literal-block">
+$ raspivid -n -t 0 -w 640 -h 480 -fps 30 -b 2000000 --profile baseline --intra 15 -o - | gst-launch-1.0 -v fdsrc ! h264parse ! rtph264pay config-interval=1 pt=100 ! udpsink host=127.0.0.1 port=8000 sync=false &amp;
+</pre>
+<p>In the web page we send to the browser, after importing <tt class="docutils literal">janus.js</tt>, <tt class="docutils literal">streaming.js</tt> for the streaming plugin and <tt class="docutils literal">adapter.js</tt> for the WebRTC adapter requiered by Janus, we need to configure the Janus session. Here is a simplified version without error handling:</p>
+<div class="highlight"><pre><span></span><span class="c1">// Initialize the library</span>
+<span class="nx">Janus</span><span class="p">.</span><span class="nx">init</span><span class="p">({</span><span class="nx">debug</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;all&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">callback</span><span class="o">:</span><span class="w"> </span><span class="kd">function</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Make sure the browser supports WebRTC</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">Janus</span><span class="p">.</span><span class="nx">isWebrtcSupported</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">alert</span><span class="p">(</span><span class="s2">&quot;No WebRTC support&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// Create session</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nx">janus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">Janus</span><span class="p">({</span>
+<span class="w">        </span><span class="nx">server</span><span class="o">:</span><span class="w"> </span><span class="nb">window</span><span class="p">.</span><span class="nx">location</span><span class="p">.</span><span class="nx">protocol</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s2">&quot;//&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">window</span><span class="p">.</span><span class="nx">location</span><span class="p">.</span><span class="nx">host</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s2">&quot;/janus&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">success</span><span class="o">:</span><span class="w"> </span><span class="kd">function</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// Attach to streaming plugin</span>
+<span class="w">            </span><span class="nx">janus</span><span class="p">.</span><span class="nx">attach</span><span class="p">({</span>
+<span class="w">                </span><span class="nx">plugin</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;janus.plugin.streaming&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nx">opaqueId</span><span class="o">:</span><span class="w"> </span><span class="nx">Janus</span><span class="p">.</span><span class="nx">randomString</span><span class="p">(</span><span class="mf">12</span><span class="p">),</span>
+<span class="w">                </span><span class="nx">success</span><span class="o">:</span><span class="w"> </span><span class="kd">function</span><span class="p">(</span><span class="nx">pluginHandle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="kd">var</span><span class="w"> </span><span class="nx">streaming</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">pluginHandle</span><span class="p">;</span>
+<span class="w">                    </span><span class="kd">var</span><span class="w"> </span><span class="nx">body</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;request&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;watch&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="p">};</span>
+<span class="w">                    </span><span class="nx">streaming</span><span class="p">.</span><span class="nx">send</span><span class="p">({</span><span class="w"> </span><span class="s2">&quot;message&quot;</span><span class="o">:</span><span class="w"> </span><span class="nx">body</span><span class="w"> </span><span class="p">});</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="nx">onmessage</span><span class="o">:</span><span class="w"> </span><span class="kd">function</span><span class="p">(</span><span class="nx">msg</span><span class="p">,</span><span class="w"> </span><span class="nx">jsep</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="k">if</span><span class="p">(</span><span class="nx">jsep</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="kc">undefined</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">jsep</span><span class="w"> </span><span class="o">!==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                        </span><span class="c1">// Answer</span>
+<span class="w">                        </span><span class="nx">streaming</span><span class="p">.</span><span class="nx">createAnswer</span><span class="p">({</span>
+<span class="w">                            </span><span class="nx">jsep</span><span class="o">:</span><span class="w"> </span><span class="nx">jsep</span><span class="p">,</span>
+<span class="w">                            </span><span class="nx">media</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">audioSend</span><span class="o">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="nx">videoSend</span><span class="o">:</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="c1">// Receive only</span>
+<span class="w">                            </span><span class="nx">success</span><span class="o">:</span><span class="w"> </span><span class="kd">function</span><span class="p">(</span><span class="nx">jsep</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                                </span><span class="kd">var</span><span class="w"> </span><span class="nx">body</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">&quot;request&quot;</span><span class="o">:</span><span class="w"> </span><span class="s2">&quot;start&quot;</span><span class="w"> </span><span class="p">};</span>
+<span class="w">                                </span><span class="nx">streaming</span><span class="p">.</span><span class="nx">send</span><span class="p">({</span><span class="s2">&quot;message&quot;</span><span class="o">:</span><span class="w"> </span><span class="nx">body</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;jsep&quot;</span><span class="o">:</span><span class="w"> </span><span class="nx">jsep</span><span class="p">});</span>
+<span class="w">                            </span><span class="p">},</span>
+<span class="w">                        </span><span class="p">});</span>
+<span class="w">                    </span><span class="p">}</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="nx">onremotestream</span><span class="o">:</span><span class="w"> </span><span class="kd">function</span><span class="p">(</span><span class="nx">stream</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="kd">var</span><span class="w"> </span><span class="nx">videoElement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s2">&quot;video&quot;</span><span class="p">);</span>
+<span class="w">                    </span><span class="nx">Janus</span><span class="p">.</span><span class="nx">attachMediaStream</span><span class="p">(</span><span class="nx">videoElement</span><span class="p">,</span><span class="w"> </span><span class="nx">stream</span><span class="p">);</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">            </span><span class="p">});</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="p">}});</span>
+</pre></div>
+<p>We also need to send the control state depending on what button or key is pressed. We'll use a very simple API with a POST on the route <tt class="docutils literal">/move</tt>:</p>
+<div class="highlight"><pre><span></span><span class="kd">var</span><span class="w"> </span><span class="nx">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span>
+<span class="w">    </span><span class="s1">&#39;state&#39;</span><span class="o">:</span><span class="w"> </span><span class="nx">state</span><span class="p">,</span>
+<span class="p">});</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">xhr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nx">XMLHttpRequest</span><span class="p">();</span>
+<span class="nx">xhr</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;/move&#39;</span><span class="p">);</span>
+<span class="nx">xhr</span><span class="p">.</span><span class="nx">setRequestHeader</span><span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;application/json&#39;</span><span class="p">);</span>
+<span class="nx">xhr</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="nx">message</span><span class="p">);</span>
+</pre></div>
+<p>Eventually, we can write the Flask app to receive the control state. It is passed to a thread that loops on the current state. As a reminder, you can find the entire Flask app with the rest of the source code for the project on <a class="reference external" href="https://github.com/paullouisageneau/eyepot">GitHub</a>.</p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">control</span>
+<span class="kn">import</span> <span class="nn">controlthread</span>
+
+<span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">Response</span><span class="p">,</span> <span class="n">send_file</span><span class="p">,</span> <span class="n">url_for</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">from_object</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">ctrl</span> <span class="o">=</span> <span class="n">control</span><span class="o">.</span><span class="n">Control</span><span class="p">(</span><span class="s1">&#39;/dev/serial0&#39;</span><span class="p">,</span> <span class="mi">9600</span><span class="p">)</span>
+<span class="n">ctrlThread</span> <span class="o">=</span> <span class="n">controlthread</span><span class="o">.</span><span class="n">ControlThread</span><span class="p">(</span><span class="n">ctrl</span><span class="p">)</span>
+<span class="n">ctrlThread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">home</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">send_file</span><span class="p">(</span><span class="s1">&#39;static/index.html&#39;</span><span class="p">)</span>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/move&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">move</span><span class="p">():</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
+    <span class="n">ctrlThread</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="s1">&#39;idle&#39;</span>
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+</pre></div>
+<p>With everything else running in backgound, we can now start the app with</p>
+<pre class="code literal-block">
+$ python3 app.py
+</pre>
+<p>Then, by pointing a WebRTC-compatible browser like Firefox or Chromium on <tt class="docutils literal"><span class="pre">https://eyepot/</span></tt>, we can control the robot with video feedback!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/eyepot_webpage.png"><img alt="The control webpage of the Eyepot" src="https://blog.chapelierfou.org/images/eyepot_webpage.png" /></a>
+<p class="caption">The control webpage of the Eyepot</p>
+</div>
+<div class="figure">
+    <video muted loop autoplay>
+        <source type="video/mp4" src="https://blog.chapelierfou.org/files/eyepot_video1.mp4">
+    </video>
+    <p class="caption">The Eyepot creepily walking around</p>
+</div><p>EDIT: Any comments? You can join the discussion on reddit <a class="reference external" href="https://www.reddit.com/r/raspberry_pi/comments/85r593/fourlegged_robotic_teapot_based_on_a_raspberry_pi/">r/raspberry_pi</a>!</p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

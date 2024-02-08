@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Networks">
+    <meta property="article:published_time" content="2015-06-29">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >A smart VPN gateway</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">29/06/2015</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/networks.html">Networks</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>My network setup at home is surprisingly pretty common: a DSL modem
+(VDSL2 actually) followed by a router featuring an ethernet switch and
+an 802.11n Wifi access point, configured as a NAT gateway.</p>
+<div class="figure">
+<img alt="My home network setup before modifications" src="https://blog.chapelierfou.org/images/mynetwork_before.png" style="width: 453px;" />
+<p class="caption">My home network setup before modifications</p>
+</div>
+<p>Let's imagine I'm in a country that doesn't care about the right to
+private life of its citizens and performs automated mass surveillance,
+on the pretext of fighting against terrorism or copyright infringement.
+A gloomy perspective for sure, but let's keep that as our work
+hypothesis, <a class="reference external" href="https://www.theverge.com/2015/7/24/9030851/france-surveillance-law-charlie-hebdo-constitutional-court">for what the future holds in store</a>.</p>
+<p>Of course, I could just set up on every computer a VPN whose gateway
+happens to be in a foreign and more respectful country. However,
+multiple VPNs on multiple computers are a highly impractical setup for
+various reasons:</p>
+<ul class="simple">
+<li>VPN configuration has to be done multiple times, and I'm allergic to
+repetitive tasks</li>
+<li>The maximum number of concurrent connections is restricted by VPN
+service providers</li>
+<li>Access to resources on a local network at the same time is a hassle
+and need specific configuration, like DNS settings</li>
+</ul>
+<p>So, why not install the VPN once and for all in a privacy-enhancing
+gateway? We will implement it in a clean, IPv6-compatible manner so we
+even have public addresses working on the hosts.</p>
+<p>Our goal is to get a smart gateway behaving as follows:</p>
+<ul class="simple">
+<li>Outgoing connections are routed through the VPN. We have to use
+Network Address Translation since the VPN provider only attributed us
+one IPv4 address and one IPv6 address.</li>
+<li>Incoming connections are routed normally to the LAN, so we get IPv4
+port forwarding and working IPv6 public addresses.</li>
+</ul>
+<div class="figure">
+<img alt="Packet streams inside the smart gateway" src="https://blog.chapelierfou.org/images/streams-e1435614112293.png" style="width: 501px;" />
+<p class="caption">Packet streams inside the smart gateway</p>
+</div>
+<p>We will use OpenVPN, so any serious VPN provider supporting the
+corresponding protocol and IPv6 will work. I recommend
+<a class="reference external" href="https://mullvad.net/">Mullvad</a>, since they accept Bitcoin payment,
+which is rather handy, but a lot of other services are good too. As a
+side note, using an IPv4-only VPN client on an IPv6-enabled network
+without tampering with the settings will lead to <a class="reference external" href="http://www.eecs.qmul.ac.uk/~hamed/papers/PETS2015VPN.pdf">IPv6 leakage</a>,
+completely disclosing a part of your traffic.</p>
+<p><em>Remember this is just a technical example, follow it at your own risk.
+I do not encourage illegal activities and I am not in any way liable to
+any damages caused by a setup inspired from this article.</em></p>
+<p>First, let's use the ethernet router as a simple switch and put a Linux
+box with two ethernet interfaces - simply use a USB ethernet dongle if
+you have only one - between this ethernet switch and the LAN.</p>
+<div class="figure">
+<img alt="My home network setup with the gateway in place" src="https://blog.chapelierfou.org/images/mynetwork.png" style="width: 533px;" />
+<p class="caption">My home network setup with the gateway in place</p>
+</div>
+<p>There is a trick here: the switch is actually a router with no WAN
+network. It runs dnsmasq so it acts as a DHCPv4 and a DNS server on the
+LAN, but the IPv4 gateway it advertises is not itself anymore but the
+actual new gateway. We could install dnsmasq on the new gateway, but
+this scheme allows for a simpler configuration, and DNS requests will
+automatically be redirected through the VPN.</p>
+<p>Mine is flashed with <a class="reference external" href="https://openwrt.org/">OpenWRT</a>, here are the
+corresponding configuration sections.</p>
+<div class="highlight"><pre><span></span><span class="o">[</span>...<span class="o">]</span>
+
+config<span class="w"> </span>interface<span class="w"> </span><span class="s1">&#39;lan&#39;</span>
+<span class="w">        </span><span class="o">[</span>...<span class="o">]</span>
+<span class="w">        </span>option<span class="w"> </span>proto<span class="w"> </span><span class="s1">&#39;static&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>netmask<span class="w"> </span><span class="s1">&#39;255.255.255.0&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>ip6assign<span class="w"> </span><span class="s1">&#39;64&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>ipaddr<span class="w"> </span><span class="s1">&#39;192.168.0.254&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>gateway<span class="w"> </span><span class="s1">&#39;192.168.0.1&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>broadcast<span class="w"> </span><span class="s1">&#39;255.255.255.0&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>dns<span class="w"> </span><span class="s1">&#39;9.9.9.9 149.112.112.112&#39;</span><span class="w"> </span><span class="c1"># Quad9 recursive resolvers</span>
+</pre></div>
+<div class="highlight"><pre><span></span><span class="o">[</span>...<span class="o">]</span>
+
+config<span class="w"> </span>dhcp<span class="w"> </span><span class="s1">&#39;lan&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>interface<span class="w"> </span><span class="s1">&#39;lan&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>start<span class="w"> </span><span class="s1">&#39;100&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>limit<span class="w"> </span><span class="s1">&#39;150&#39;</span>
+<span class="w">        </span>option<span class="w"> </span>leasetime<span class="w"> </span><span class="s1">&#39;24h&#39;</span>
+<span class="w">        </span>list<span class="w"> </span>dhcp_option<span class="w"> </span><span class="s1">&#39;6,192.168.0.254&#39;</span><span class="w"> </span><span class="c1"># DNS server</span>
+<span class="w">        </span>list<span class="w"> </span>dhcp_option<span class="w"> </span><span class="s1">&#39;3,192.168.0.1&#39;</span><span class="w">   </span><span class="c1"># Gateway</span>
+<span class="w">        </span>list<span class="w"> </span>dhcp_option<span class="w"> </span><span class="s1">&#39;119,local&#39;</span><span class="w">       </span><span class="c1"># Local domain</span>
+<span class="w">        </span><span class="o">[</span>...<span class="o">]</span>
+</pre></div>
+<p>I assume here you get IPv4 addressing from your ISP with DHCPv4 and IPv6
+addressing on a /64 through IPv6 Stateless Address Autoconfiguration
+(SLAAC). From experience it seems to be a pretty common setup nowadays,
+if your ISP is not one of those blatantly incompetent ones that have not
+even deployed IPv6 yet.</p>
+<p>First step, set up the VPN service on the gateway. Follow the
+instructions given by the VPN provider, but basically you should get a
+config file, <em>e.g.</em> <tt class="docutils literal">vpn.conf</tt>, along with certificates and a private
+key to put in <tt class="docutils literal">/etc/openvpn/</tt>. Be sure to configure UDP as transport
+protocol for OpenVPN, TCP over TCP is <a class="reference external" href="http://sites.inka.de/bigred/devel/tcp-tcp.html">an ugly
+thing</a>.</p>
+<p>Second step, configure the gateway. The preliminary requirement is of
+course setting the interfaces. My box runs Debian GNU/Linux, so I use
+the Debian-specific network configuration file, but you can adapt it
+easily to any Linux distribution. Note I have chosen static IPv6
+configuration, but you could get away with SLAAC on eth1.</p>
+<div class="highlight"><pre><span></span><span class="c1"># The loopback network interface</span>
+auto<span class="w"> </span>lo
+iface<span class="w"> </span>lo<span class="w"> </span>inet<span class="w"> </span>loopback
+
+<span class="c1"># The LAN network interface</span>
+allow-hotplug<span class="w"> </span>eth0
+
+iface<span class="w"> </span>eth0<span class="w"> </span>inet<span class="w"> </span>static
+address<span class="w"> </span><span class="m">192</span>.168.0.1
+netmask<span class="w"> </span><span class="m">255</span>.255.255.0
+
+iface<span class="w"> </span>eth0<span class="w"> </span>inet6<span class="w"> </span>static
+address<span class="w"> </span><span class="m">2001</span>:X:X:X:X:X:X:X<span class="w"> </span><span class="c1"># IPv6 address eth1 (not eth0) would get through SLAAC</span>
+netmask<span class="w"> </span><span class="m">64</span>
+
+<span class="c1"># The WAN network interface</span>
+allow-hotplug<span class="w"> </span>eth1
+
+iface<span class="w"> </span>eth1<span class="w"> </span>inet<span class="w"> </span>dhcp
+
+iface<span class="w"> </span>eth1<span class="w"> </span>inet6<span class="w"> </span>static
+address<span class="w"> </span><span class="m">2001</span>:X:X:X:X:X:X:X<span class="w"> </span><span class="c1"># IPv6 address eth1 would get through SLAAC</span>
+netmask<span class="w"> </span><span class="m">128</span><span class="w">                </span><span class="c1"># We don&#39;t want Linux looking for neighbours there</span>
+gateway<span class="w"> </span>fe80::X:X:X:X<span class="w">      </span><span class="c1"># Link local address to the ISP&#39;s gateway</span>
+</pre></div>
+<p>Apply the new network configuration:</p>
+<pre class="code literal-block">
+# service networking restart
+</pre>
+<p>Now, we have to enable IPv4 and IPv6 forwarding, set Reverse Path Filter
+to loose mode so it doesn't mess with our setup, and enable Neighbour
+Discovery Protocol Proxy for IPv6. To do so, edit <tt class="docutils literal">/etc/sysctl.conf</tt></p>
+<div class="highlight"><pre><span></span><span class="c1"># IPv4 forwarding</span>
+net.ipv4.ip_forward<span class="o">=</span><span class="m">1</span>
+net.ipv4.conf.default.forwarding<span class="o">=</span><span class="m">1</span>
+net.ipv4.conf.eth0.forwarding<span class="o">=</span><span class="m">1</span>
+net.ipv4.conf.eth1.forwarding<span class="o">=</span><span class="m">1</span>
+
+<span class="c1"># IPv4 Reverse Path Filter to loose mode</span>
+net.ipv4.conf.default.rp_filter<span class="o">=</span><span class="m">2</span>
+net.ipv4.conf.eth0.rp_filter<span class="o">=</span><span class="m">2</span>
+net.ipv4.conf.eth1.rp_filter<span class="o">=</span><span class="m">2</span>
+
+<span class="c1"># IPv6 forwarding</span>
+net.ipv6.conf.default.forwarding<span class="o">=</span><span class="m">1</span>
+net.ipv6.conf.eth0.forwarding<span class="o">=</span><span class="m">1</span>
+net.ipv6.conf.eth1.forwarding<span class="o">=</span><span class="m">1</span>
+
+<span class="c1"># IPv6 NDP proxy</span>
+net.ipv6.conf.eth0.proxy_ndp<span class="o">=</span><span class="m">2</span>
+net.ipv6.conf.eth1.proxy_ndp<span class="o">=</span><span class="m">2</span>
+</pre></div>
+<p>Now load these new settings:</p>
+<pre class="code literal-block">
+# sysctl -p
+</pre>
+<p>In order to enable SLAAC for hosts on the LAN, we need to install and
+configure <tt class="docutils literal">radvd</tt> on the gateway's LAN interface to broadcast the IPv6
+public prefix. After installing the program, add the following in
+<tt class="docutils literal">/etc/radvd.conf</tt>, where <tt class="docutils literal"><span class="pre">2001:X:X:X::/64</span></tt> is your IPv6 prefix.</p>
+<pre class="code literal-block">
+interface eth0
+{
+  AdvSendAdvert on;
+  prefix 2001:X:X:X::/64
+  {
+  };
+};
+</pre>
+<pre class="code literal-block">
+# service radvd start
+</pre>
+<p>Then, we set up <tt class="docutils literal">iptables</tt> and <tt class="docutils literal">ip6tables</tt> to get a standard NAT
+configuration between LAN and WAN. We add a couple lines to the
+<tt class="docutils literal">mangle</tt> table to save and restore packet marks so every packet on a
+single connection has the same mark, I will explain why at the next
+step. Note that with this configuration, IPv4 Internet access should
+work normally.</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/bin/sh</span>
+
+<span class="nv">LAN_DEV</span><span class="o">=</span>eth0
+<span class="nv">WAN_DEV</span><span class="o">=</span>eth1
+
+<span class="c1"># Default policies</span>
+iptables<span class="w"> </span>-P<span class="w"> </span>OUTPUT<span class="w"> </span>ACCEPT
+iptables<span class="w"> </span>-P<span class="w"> </span>INPUT<span class="w"> </span>DROP
+iptables<span class="w"> </span>-P<span class="w"> </span>FORWARD<span class="w"> </span>ACCEPT
+
+ip6tables<span class="w"> </span>-P<span class="w"> </span>OUTPUT<span class="w"> </span>ACCEPT
+ip6tables<span class="w"> </span>-P<span class="w"> </span>INPUT<span class="w"> </span>DROP
+ip6tables<span class="w"> </span>-P<span class="w"> </span>FORWARD<span class="w"> </span>ACCEPT
+
+iptables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-i<span class="w"> </span>lo<span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w">                                </span><span class="c1"># Allow from loopback</span>
+iptables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-i<span class="w"> </span><span class="nv">$LAN_DEV</span><span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w">                          </span><span class="c1"># Allow from LAN</span>
+iptables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-m<span class="w"> </span>state<span class="w"> </span>--state<span class="w"> </span>ESTABLISHED,RELATED<span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w"> </span><span class="c1"># Allow established</span>
+iptables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-p<span class="w"> </span>icmp<span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w">                              </span><span class="c1"># Allow ICMP (e.g. ping)</span>
+
+ip6tables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-i<span class="w"> </span>lo<span class="w"> </span>-j<span class="w"> </span>ACCEPT
+ip6tables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-i<span class="w"> </span><span class="nv">$LAN_DEV</span><span class="w"> </span>-j<span class="w"> </span>ACCEPT
+ip6tables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-m<span class="w"> </span>state<span class="w"> </span>--state<span class="w"> </span>ESTABLISHED,RELATED<span class="w"> </span>-j<span class="w"> </span>ACCEPT
+ip6tables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-p<span class="w"> </span>icmpv6<span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w"> </span><span class="c1"># Mandatory for neighbour discovery</span>
+
+<span class="c1"># NAT</span>
+iptables<span class="w"> </span>-t<span class="w"> </span>nat<span class="w"> </span>-A<span class="w"> </span>POSTROUTING<span class="w"> </span>-o<span class="w"> </span><span class="nv">$WAN_DEV</span><span class="w"> </span>-j<span class="w"> </span>MASQUERADE
+
+<span class="c1"># Alternatively, if you have a static IP4 (and so a good ISP), SNAT is better</span>
+<span class="c1">#iptables -t nat -A POSTROUTING -o $WAN_DEV -j SNAT --to-source $WAN_IP4</span>
+
+<span class="c1"># Save packet marks with connection tracking</span>
+iptables<span class="w"> </span>-t<span class="w"> </span>mangle<span class="w"> </span>-A<span class="w"> </span>PREROUTING<span class="w">  </span>-j<span class="w"> </span>CONNMARK<span class="w"> </span>--restore-mark
+iptables<span class="w"> </span>-t<span class="w"> </span>mangle<span class="w"> </span>-A<span class="w"> </span>POSTROUTING<span class="w"> </span>-j<span class="w"> </span>CONNMARK<span class="w"> </span>--save-mark
+
+ip6tables<span class="w"> </span>-t<span class="w"> </span>mangle<span class="w"> </span>-A<span class="w"> </span>PREROUTING<span class="w">  </span>-j<span class="w"> </span>CONNMARK<span class="w"> </span>--restore-mark
+ip6tables<span class="w"> </span>-t<span class="w"> </span>mangle<span class="w"> </span>-A<span class="w"> </span>POSTROUTING<span class="w"> </span>-j<span class="w"> </span>CONNMARK<span class="w"> </span>--save-mark
+
+<span class="c1"># Allow access to some services on this machine from the WAN</span>
+iptables<span class="w">  </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-i<span class="w"> </span><span class="nv">$WAN_DEV</span><span class="w"> </span>-p<span class="w"> </span>tcp<span class="w"> </span>--dport<span class="w"> </span><span class="m">22</span><span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w">  </span><span class="c1"># SSH IPv4</span>
+ip6tables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-i<span class="w"> </span><span class="nv">$WAN_DEV</span><span class="w"> </span>-p<span class="w"> </span>tcp<span class="w"> </span>--dport<span class="w"> </span><span class="m">22</span><span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w">  </span><span class="c1"># SSH IPv6</span>
+iptables<span class="w">  </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-i<span class="w"> </span><span class="nv">$WAN_DEV</span><span class="w"> </span>-p<span class="w"> </span>tcp<span class="w"> </span>--dport<span class="w"> </span><span class="m">80</span><span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w">  </span><span class="c1"># HTTP IPv4</span>
+ip6tables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-i<span class="w"> </span><span class="nv">$WAN_DEV</span><span class="w"> </span>-p<span class="w"> </span>tcp<span class="w"> </span>--dport<span class="w"> </span><span class="m">80</span><span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w">  </span><span class="c1"># HTTP IPv6</span>
+iptables<span class="w">  </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-i<span class="w"> </span><span class="nv">$WAN_DEV</span><span class="w"> </span>-p<span class="w"> </span>tcp<span class="w"> </span>--dport<span class="w"> </span><span class="m">443</span><span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w"> </span><span class="c1"># HTTPS IPv4</span>
+ip6tables<span class="w"> </span>-A<span class="w"> </span>INPUT<span class="w"> </span>-i<span class="w"> </span><span class="nv">$WAN_DEV</span><span class="w"> </span>-p<span class="w"> </span>tcp<span class="w"> </span>--dport<span class="w"> </span><span class="m">443</span><span class="w"> </span>-j<span class="w"> </span>ACCEPT<span class="w"> </span><span class="c1"># HTTPS IPv6</span>
+
+<span class="nb">exit</span><span class="w"> </span><span class="m">0</span>
+</pre></div>
+<pre class="code literal-block">
+# chmod +x ./iptables.sh
+# ./iptables.sh
+</pre>
+<p>We will need a specific routing table for traffic destined to go through
+the VPN, and we have to register it before continuing:</p>
+<pre class="code literal-block">
+# echo &quot;10 vpn&quot; &gt;&gt; /etc/iproute2/rt_tables
+</pre>
+<p>Next, we add a VPN startup script <tt class="docutils literal">/etc/openvpn/vpn_up.sh</tt> to start
+routing outgoing connections through the VPN as soon as it is connected.</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/bin/sh</span>
+
+<span class="c1"># Get the dev name from openvpn</span>
+<span class="nv">DEV</span><span class="o">=</span><span class="nv">$1</span>
+
+<span class="c1"># LAN settings</span>
+<span class="nv">LAN_DEV</span><span class="o">=</span>eth0
+<span class="nv">LAN_NET4</span><span class="o">=</span><span class="m">192</span>.168.0.0/24
+<span class="nv">LAN_NET6</span><span class="o">=</span><span class="m">2001</span>:X:X:X::/64
+
+<span class="c1"># Get IPv4 network address range and gateway for the VPN</span>
+<span class="c1"># This works for Mullvad, but you might have to modify it depending on the masks</span>
+<span class="nv">IP4</span><span class="o">=</span><span class="k">$(</span>ip<span class="w"> </span>-4<span class="w"> </span>addr<span class="w"> </span>show<span class="w"> </span>dev<span class="w"> </span><span class="nv">$DEV</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;/inet/&amp;&amp;/global/{print $2}&#39;</span><span class="k">)</span>
+<span class="nv">NET4</span><span class="o">=</span><span class="si">${</span><span class="nv">IP4</span><span class="p">%</span><span class="se">\.</span><span class="p">*</span><span class="se">\.</span><span class="p">*</span><span class="si">}</span>.0.0/16
+<span class="nv">GATEWAY4</span><span class="o">=</span><span class="si">${</span><span class="nv">IP4</span><span class="p">%</span><span class="se">\.</span><span class="p">*</span><span class="se">\.</span><span class="p">*</span><span class="si">}</span>.0.1
+
+<span class="c1"># VPN routing table</span>
+ip<span class="w"> </span>-4<span class="w"> </span>rule<span class="w"> </span>add<span class="w"> </span>from<span class="w"> </span><span class="nv">$LAN_IP4</span><span class="w"> </span>lookup<span class="w"> </span>vpn<span class="w"> </span>priority<span class="w"> </span><span class="m">1000</span>
+ip<span class="w"> </span>-4<span class="w"> </span>route<span class="w"> </span>add<span class="w"> </span><span class="nv">$NET4</span><span class="w"> </span>dev<span class="w"> </span><span class="nv">$DEV</span>
+ip<span class="w"> </span>-4<span class="w"> </span>route<span class="w"> </span>add<span class="w"> </span><span class="nv">$NET4</span><span class="w"> </span>dev<span class="w"> </span><span class="nv">$DEV</span><span class="w"> </span>table<span class="w"> </span>vpn
+ip<span class="w"> </span>-4<span class="w"> </span>route<span class="w"> </span>add<span class="w"> </span><span class="nv">$LAN_NET4</span><span class="w"> </span>dev<span class="w"> </span><span class="nv">$LAN_DEV</span><span class="w"> </span>table<span class="w"> </span>vpn
+ip<span class="w"> </span>-4<span class="w"> </span>route<span class="w"> </span>add<span class="w"> </span>default<span class="w"> </span>via<span class="w"> </span><span class="nv">$GATEWAY4</span><span class="w"> </span>dev<span class="w"> </span><span class="nv">$DEV</span><span class="w"> </span>table<span class="w"> </span>vpn
+
+ip<span class="w"> </span>-6<span class="w"> </span>rule<span class="w"> </span>add<span class="w"> </span>from<span class="w"> </span><span class="nv">$LAN_IP6</span><span class="w"> </span>lookup<span class="w"> </span>vpn<span class="w"> </span>priority<span class="w"> </span><span class="m">1000</span>
+ip<span class="w"> </span>-6<span class="w"> </span>route<span class="w"> </span>add<span class="w"> </span><span class="nv">$LAN_NET6</span><span class="w"> </span>dev<span class="w"> </span><span class="nv">$LAN_DEV</span><span class="w"> </span>table<span class="w"> </span>vpn
+ip<span class="w"> </span>-6<span class="w"> </span>route<span class="w"> </span>add<span class="w"> </span>default<span class="w"> </span>dev<span class="w"> </span><span class="nv">$DEV</span><span class="w"> </span>table<span class="w"> </span>vpn
+
+<span class="c1"># Packets marked 10 are never routed through the VPN</span>
+ip<span class="w"> </span>-4<span class="w"> </span>rule<span class="w"> </span>add<span class="w"> </span>fwmark<span class="w"> </span><span class="m">10</span><span class="w"> </span>lookup<span class="w"> </span>main<span class="w"> </span>priority<span class="w"> </span><span class="m">100</span>
+ip<span class="w"> </span>-6<span class="w"> </span>rule<span class="w"> </span>add<span class="w"> </span>fwmark<span class="w"> </span><span class="m">10</span><span class="w"> </span>lookup<span class="w"> </span>main<span class="w"> </span>priority<span class="w"> </span><span class="m">100</span>
+
+<span class="c1"># NAT to the VPN</span>
+iptables<span class="w">  </span>-t<span class="w"> </span>nat<span class="w"> </span>-A<span class="w"> </span>POSTROUTING<span class="w"> </span>-s<span class="w"> </span><span class="nv">$LAN_NET4</span><span class="w"> </span>-o<span class="w"> </span><span class="nv">$DEV</span><span class="w"> </span>-j<span class="w"> </span>MASQUERADE
+ip6tables<span class="w"> </span>-t<span class="w"> </span>nat<span class="w"> </span>-A<span class="w"> </span>POSTROUTING<span class="w"> </span>-s<span class="w"> </span><span class="nv">$LAN_NET6</span><span class="w"> </span>-o<span class="w"> </span><span class="nv">$DEV</span><span class="w"> </span>-j<span class="w"> </span>MASQUERADE
+
+<span class="c1"># Prevent routing established public connections through the VPN by setting mark 10</span>
+<span class="c1"># Remember we used CONNMARK so all packets from the same connection are also marked</span>
+<span class="c1"># The IPv4 part might seem useless, but it&#39;s necessary if we want to forward a service</span>
+iptables<span class="w">  </span>-t<span class="w"> </span>mangle<span class="w"> </span>-A<span class="w"> </span>PREROUTING<span class="w"> </span>!<span class="w"> </span>-i<span class="w"> </span><span class="nv">$DEV</span><span class="w"> </span>-d<span class="w"> </span><span class="nv">$LAN_NET4</span><span class="w"> </span>-j<span class="w"> </span>MARK<span class="w"> </span>--set-mark<span class="w"> </span><span class="m">10</span>
+ip6tables<span class="w"> </span>-t<span class="w"> </span>mangle<span class="w"> </span>-A<span class="w"> </span>PREROUTING<span class="w"> </span>!<span class="w"> </span>-i<span class="w"> </span><span class="nv">$DEV</span><span class="w"> </span>-d<span class="w"> </span><span class="nv">$LAN_NET6</span><span class="w"> </span>-j<span class="w"> </span>MARK<span class="w"> </span>--set-mark<span class="w"> </span><span class="m">10</span>
+
+<span class="c1"># You can prevent a service from going through the VPN like this</span>
+<span class="c1"># Example: Prevent VPN through VPN</span>
+iptables<span class="w">  </span>-t<span class="w"> </span>mangle<span class="w"> </span>-A<span class="w"> </span>PREROUTING<span class="w"> </span>-s<span class="w"> </span><span class="nv">$LAN_IP4</span><span class="w"> </span>-p<span class="w"> </span>udp<span class="w"> </span>--dport<span class="w"> </span><span class="m">1194</span><span class="w"> </span>-j<span class="w"> </span>MARK<span class="w"> </span>--set-mark<span class="w"> </span><span class="m">10</span>
+ip6tables<span class="w"> </span>-t<span class="w"> </span>mangle<span class="w"> </span>-A<span class="w"> </span>PREROUTING<span class="w"> </span>-s<span class="w"> </span><span class="nv">$LAN_IP6</span><span class="w"> </span>-p<span class="w"> </span>udp<span class="w"> </span>--dport<span class="w"> </span><span class="m">1194</span><span class="w"> </span>-j<span class="w"> </span>MARK<span class="w"> </span>--set-mark<span class="w"> </span><span class="m">10</span>
+
+<span class="c1"># Enable forwarding, just to be sure</span>
+sysctl<span class="w"> </span>-w<span class="w"> </span>net.ipv4.conf.<span class="si">${</span><span class="nv">DEV</span><span class="si">}</span>.forwarding<span class="o">=</span><span class="m">1</span>
+sysctl<span class="w"> </span>-w<span class="w"> </span>net.ipv6.conf.<span class="si">${</span><span class="nv">DEV</span><span class="si">}</span>.forwarding<span class="o">=</span><span class="m">1</span>
+
+<span class="nb">exit</span><span class="w"> </span><span class="m">0</span>
+</pre></div>
+<p>Don't forget to make it executable:</p>
+<pre class="code literal-block">
+# chmod +x /etc/openvpn/vpn_up.sh
+</pre>
+<p>And declare it in the <tt class="docutils literal">vpn.conf</tt> config file:</p>
+<div class="highlight"><pre><span></span><span class="o">[</span>...<span class="o">]</span>
+
+<span class="c1"># Scripts</span>
+up<span class="w"> </span>/etc/openvpn/vpn_up.sh
+</pre></div>
+<p>Now start openvpn (Don't forget to edit <tt class="docutils literal">/etc/default/openvpn</tt> first
+on Debian), and let the magic happen...</p>
+<pre class="code literal-block">
+# service openvpn start
+</pre>
+<div class="figure">
+<img alt="It works!" src="https://blog.chapelierfou.org/images/itworks.png" />
+<p class="caption">It works! Note outgoing connections use IPv4 and IPv6 adresses in Sweden. Yay for the winner of Eurovision 2015 :P</p>
+</div>
+<p>But there is a catch: incoming IPv6 connections do not get through to
+the LAN... Because we forgot to proxy IPv6 neighbours! What we would
+like to use is something like
+<tt class="docutils literal">ip <span class="pre">-6</span> neigh add proxy <span class="pre">2001:X:X:X::/64</span> dev eth1</tt> to have the kernel
+answer neighbour requests coming from the ISP's gateway for hosts on the
+LAN. Sadly, it doesn't seem to exist, you can proxy a unique host but
+not an address range.</p>
+<p>Yet, we can hack around this irritating issue with a script to do the
+job. It works, but it might not be the best practice. If a network guru
+comes around and has a better way... feel free to comment!</p>
+<p>For now, let's write a custom <tt class="docutils literal">/root/proxyprefix.sh</tt></p>
+<div class="highlight"><pre><span></span><span class="ch">#!/bin/sh</span>
+
+<span class="nv">PREFIX</span><span class="o">=</span><span class="nv">$1</span>
+<span class="nv">DEV1</span><span class="o">=</span><span class="nv">$2</span>
+<span class="nv">DEV2</span><span class="o">=</span><span class="nv">$3</span>
+
+<span class="c1"># List every neighbour address on DEV1 and proxy it on DEV2</span>
+ip<span class="w"> </span>-6<span class="w"> </span>neigh<span class="w"> </span>show<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;/&#39;</span><span class="nv">$PREFIX</span><span class="s1">&#39;.*&#39;</span><span class="nv">$DEV1</span><span class="s1">&#39;/{print $1}&#39;</span><span class="w"> </span><span class="p">|</span>
+<span class="k">while</span><span class="w"> </span><span class="nb">read</span><span class="w"> </span>IP6
+<span class="k">do</span>
+<span class="w">        </span>ip<span class="w"> </span>-6<span class="w"> </span>neigh<span class="w"> </span>add<span class="w"> </span>proxy<span class="w"> </span><span class="nv">$IP6</span><span class="w"> </span>dev<span class="w"> </span><span class="nv">$DEV2</span>
+<span class="k">done</span>
+
+<span class="nb">exit</span><span class="w"> </span><span class="m">0</span>
+</pre></div>
+<pre class="code literal-block">
+# chmod +x /root/proxyprefix.sh
+</pre>
+<p>It has to be run at regular intervals, one way to do so is to add it to
+the crontab with <tt class="docutils literal">crontab <span class="pre">-e</span></tt></p>
+<div class="highlight"><pre><span></span><span class="c1"># m h  dom mon dow   command</span>
+*<span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span>/root/proxyprefix.sh<span class="w"> </span><span class="m">2001</span>:X:X:X<span class="w"> </span>eth0<span class="w"> </span>eth1
+</pre></div>
+<p>It should work perfectly and make the hosts on the LAN reachable using
+IPv6. If you want, you can add some firewall rules for incoming
+connections (on the <tt class="docutils literal">FORWARD</tt> chain).</p>
+<p>For IPv4, forwarding a port is done the normal way with <tt class="docutils literal">DNAT</tt>:</p>
+<pre class="code literal-block">
+# iptables -t nat -A PREROUTING -i eth1 -p tcp --dport $MYPORT -j DNAT --to-destination $MYHOST
+</pre>
+<p>Once everything is working, don't forget to set the firewall and NAT
+configuration to load at startup. A <a class="reference external" href="https://wiki.debian.org/iptables">cleaner
+way</a> to do it would be to use
+<tt class="docutils literal"><span class="pre">iptables-save</span></tt> and <tt class="docutils literal"><span class="pre">iptables-restore</span></tt>.</p>
+<pre class="code literal-block">
+# mv ./iptables.sh /etc/network/if-pre-up.d/iptables
+</pre>
+<p>How about a nice cup of tea to celebrate?</p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

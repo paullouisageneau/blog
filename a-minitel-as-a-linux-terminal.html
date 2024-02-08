@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Hardware">
+    <meta property="article:published_time" content="2016-06-12">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >A Minitel as a Linux terminal</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">12/06/2016</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/hardware.html">Hardware</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>The Minitel (from the French <em>Médium Interactif par Numérisation
+d'Information Téléphonique</em>) was an interactive videotex online service
+accessible through phone lines, operated in France from 1982 by the
+state-owned PTT (Postes, Télégraphes et Téléphones), the ancestor of
+France Télécom. The service was retired in 2012, after more than 30
+years of existence. It might have been the world's most successful early
+online service, before the World Wide Web era. It offered services like
+telephone directory, purchases, reservations, mail, and chat just like
+the Web offers today.</p>
+<p>The Minitel, starting from model 1B, can be used as a VT100-compatible
+Linux terminal with the proper wiring. So let's try...</p>
+<div class="figure">
+<a class="reference external image-reference" href="http://www.museedesconfluences.fr/fr/ressources/minitel-1"><img alt="Minitel 1" src="https://blog.chapelierfou.org/images/minitel1.jpg" /></a>
+<p class="caption">The first version of the Minitel, made by Telic Alcatel. So 80s.</p>
+</div>
+<p>Before starting to tinker, it's interesting to recall that the story
+behind the Minitel is actually pretty tragic despite its success. In
+the 70s, France was leading research on packet-switched networks. The
+<a class="reference external" href="https://en.wikipedia.org/wiki/CYCLADES">CYCLADES</a> project,
+directed by <a class="reference external" href="https://en.wikipedia.org/wiki/Louis_Pouzin">Louis
+Pouzin</a>, inventor of
+the datagram, designed an early datagram-based packet communications
+network. In parallel, the French PTT was developing Transpac, a packet
+network based on virtual circuit switching with the emerging X.25
+standard, which would be used by the Télétel network of the Minitel.
+The debate between datagrams and virtual circuits was eventually cut
+short by bureaucratic decisions in favor of the PTT. Datagram-based
+projects were stopped, but Pouzin's work on datagram networks served
+as an inspiration for academics Robert Kahn and Vinton Cerf in the
+development of <a class="reference external" href="https://en.wikipedia.org/wiki/Internet_protocol_suite">TCP/IP</a>,
+the future cornerstone of the Internet, for
+<a class="reference external" href="https://en.wikipedia.org/wiki/ARPANET">ARPANET</a>, its ancestor,
+which was already running since the pionneering work of Leonard Kleinrock
+at UCLA, California. In the following years, France
+Télécom, backed by the French administration, enforced monopolistic
+prices and wanted to stick to a centralized circuit-switched network.
+They tried to resist the emerging Internet, maintaining it was only a
+flash in the pan. You know the rest.</p>
+<p>Back to our terminal: several tutorials already exist on the Web, but
+most of them use a COM port, which is becoming rather uncommon, and
+expect a Linux distribution with System V init, which is now deprecated
+in most distributions in favor of Systemd. I'm using a Minitel 1B, but
+every Minitel with a <tt class="docutils literal">Fnct</tt> key should serve the purpose as well (so
+the Minitel 1 is not compatible with this setup).</p>
+<p>We will use a
+<a class="reference external" href="https://www.amazon.com/s/?field-keywords=CP2102">CP2102</a> USB to UART
+bridge so we can connect the Minitel via USB, as suggested on <a class="reference external" href="http://pila.fr/wordpress/?p=361">Pila's
+blog</a>.</p>
+<blockquote>
+<div class="figure">
+<img alt="Schematic for the adaptation circuit between the Minitel and CP2102" src="https://blog.chapelierfou.org/images/schema_minitel.png" />
+<p class="caption">Schematic for the adaptation circuit between the Minitel and CP2102</p>
+</div>
+</blockquote>
+<p>The Minitel has a DIN socket with 5 pins on the back to use it in VT100
+mode. The TX pin of the Minitel is connected directly to the RX pin of
+the UART with a 220 kΩ pull-up resistor to the 5V VCC. The RX pin of the
+Minitel might output a voltage up to 15V, so we need to adapt the level
+to 3.3V with a 2N2222A transistor and a voltage divider.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160611_200745.jpg"><img alt="The USB to Minitel cable soldered and ready to connect" src="https://blog.chapelierfou.org/images/IMG_20160611_200745-small.jpg" /></a>
+<p class="caption">The USB to Minitel cable soldered and ready to connect</p>
+</div>
+<p>Now that the hardware is ready, let's do some software configuration.
+First, we need a dedicated terminfo file so it works smoothly:
+<a class="reference external" href="https://blog.chapelierfou.org/files/mntl.ti">mntl.ti</a> written by Alexandre
+Montaron.</p>
+<p>Compile and install it with <tt class="docutils literal">tic</tt>:</p>
+<pre class="code literal-block">
+$ wget http://canal.chez.com/mntl.ti
+$ tic mntl.ti
+</pre>
+<p>My Linux machine, like any modern system, is set up with a UTF-8 locale.
+We have to disable it and switch to ASCII English when using the Minitel
+as a terminal by adding the following to <tt class="docutils literal"><span class="pre">~/.bashrc</span></tt>:</p>
+<div class="highlight"><pre><span></span><span class="o">[</span>...<span class="o">]</span>
+<span class="c1"># Minitel</span>
+<span class="k">case</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TERM</span><span class="s2">&quot;</span><span class="w"> </span><span class="k">in</span>
+m1*<span class="p">|</span>m2*<span class="o">)</span>
+<span class="w">    </span><span class="nb">export</span><span class="w"> </span><span class="nv">LC_ALL</span><span class="o">=</span>C
+<span class="w">    </span><span class="p">;;</span>
+<span class="k">esac</span>
+</pre></div>
+<p>The Minitel requires specific escape codes for accents, so if you want
+them to work, the trick is to use <tt class="docutils literal">screen</tt> with <a class="reference external" href="https://blog.chapelierfou.org/files/mntl_screenrc">some termcapinfo
+commands</a> added to
+<tt class="docutils literal"><span class="pre">~/.screenrc</span></tt>, as specified in the
+<a class="reference external" href="https://blog.chapelierfou.org/files/mntl.ti">mntl.ti</a> file.</p>
+<p>The Minitel has no memory and needs to be configured at each restart:</p>
+<ul class="simple">
+<li><tt class="docutils literal">Fnct+T</tt> then <tt class="docutils literal">A</tt> to switch to VT100 mode (default is Videotex)</li>
+<li><tt class="docutils literal">Fnct+T</tt> then <tt class="docutils literal">E</tt> to disable local echo (local echo is enabled by default)</li>
+<li><tt class="docutils literal">Fnct+P</tt> then <tt class="docutils literal">4</tt> to switch to 4800 bauds, the maximum the Minitel 1 can handle (default is 1200)</li>
+</ul>
+<p>Eventually, let's send a prompt to the Minitel with <tt class="docutils literal">agetty</tt>.</p>
+<p>Calling <tt class="docutils literal">agetty</tt> directly is possible, except the login prompt is
+ugly. The reason for this issue is that the Minitel actually expects 7
+bits with one even parity bit, and this has to be autodetected, but only
+after the login is sent. Therefore, we first issue a <tt class="docutils literal">stty</tt> to set the
+terminal flags properly, then call <tt class="docutils literal">agetty</tt> with the <tt class="docutils literal"><span class="pre">-c</span></tt> argument
+so it does not reset them.</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/bin/sh</span>
+
+<span class="nv">TTY</span><span class="o">=</span><span class="si">${</span><span class="nv">1</span><span class="k">:-</span><span class="nv">ttyUSB0</span><span class="si">}</span>
+<span class="nv">BPS</span><span class="o">=</span><span class="m">4800</span>
+
+stty<span class="w"> </span>-F<span class="w"> </span><span class="s2">&quot;/dev/</span><span class="nv">$TTY</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">$BPS</span><span class="w"> </span>istrip<span class="w"> </span>cs7<span class="w"> </span>parenb<span class="w"> </span>-parodd<span class="w"> </span>brkint<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>ignpar<span class="w"> </span>icrnl<span class="w"> </span>ixon<span class="w"> </span>ixany<span class="w"> </span>opost<span class="w"> </span>onlcr<span class="w"> </span>cread<span class="w"> </span>hupcl<span class="w"> </span>isig<span class="w"> </span>icanon<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span><span class="nb">echo</span><span class="w"> </span>echoe<span class="w"> </span>echok<span class="p">;</span>
+
+<span class="k">while</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;/dev/</span><span class="nv">$TTY</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">        </span>agetty<span class="w"> </span>-c<span class="w"> </span>-L<span class="w"> </span>-i<span class="w"> </span>-I<span class="w"> </span><span class="s2">&quot;\033\143&quot;</span><span class="w"> </span><span class="nv">$TTY</span><span class="w"> </span><span class="nv">$BPS</span><span class="w"> </span>m1b-x80
+<span class="w">        </span>sleep<span class="w"> </span><span class="m">1</span>
+<span class="k">done</span>
+</pre></div>
+<p>I'm setting the <tt class="docutils literal">TERM</tt> environment variable to <tt class="docutils literal"><span class="pre">m1b-x80</span></tt> for model
+1B in 80-column mode. The purpose of the init string <tt class="docutils literal">&quot;\033\143&quot;</tt> is
+to clear the screen before sending the prompt.</p>
+<pre class="code literal-block">
+# chmod +x getty_mntl.sh
+# ./getty_mntl.sh ttyUSB0
+</pre>
+<p>It works perfectly, and most Linux console-based programs work without
+any issue on this old-fashioned terminal. For instance,
+<a class="reference external" href="http://lynx.invisible-island.net/lynx.html">Lynx</a> works like a
+charm.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160611_133251.jpg"><img alt="Browsing Wikipedia like it's 1989" src="https://blog.chapelierfou.org/images/IMG_20160611_133251-small.jpg" /></a>
+<p class="caption">Browsing Wikipedia like it's 1989</p>
+</div>
+<p><a class="reference external" href="https://moc.daper.net/">Music on Console (MOC)</a> also runs
+flawlessly, turning the Minitel into a nice retro music player
+interface!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160616_234344.jpg"><img alt="Music on Console (MOC) running on the Minitel" src="https://blog.chapelierfou.org/images/IMG_20160616_234344-small.jpg" /></a>
+<p class="caption">Music on Console (MOC) running on the Minitel</p>
+</div>
+<p>This was only the beginning of my Minitel saga, see <a class="reference external" href="https://blog.chapelierfou.org/a-minitel-2.0.html">my Minitel 2.0 article</a> about integrating a Raspberry Pi into a Minitel!</p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

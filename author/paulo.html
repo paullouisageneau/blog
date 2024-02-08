@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou - Articles by paulo</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+<h2>Articles by paulo</h2>
+
+<ul class="posts">
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/enumerating-raspberry-pis.html" rel="bookmark" title="Permalink to Enumerating Raspberry Pis">Enumerating Raspberry Pis</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">09/02/2022</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/networks.html">Networks</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>        </div>
+    </header>
+    <div class="summary"><p>After installing a freshly-copied microSD card in a headless Raspberry Pi, there is sometimes an awkward moment.
+The Raspberry Pi boots in its default configuration and obtains an address from DHCP, then you need to SSH into it.
+However, even if in general the Raspberry Pi can be found with its domain name (<tt class="docutils literal">raspberrypi</tt> by default) using a local DNS server or mDNS, it can also become a pain sometimes, for instance when you configure multiple Raspberry Pis at the same time.</p>
+<p>In situations where <tt class="docutils literal">ssh pi&#64;raspberrypi.local</tt> does not work, you need to scan the local network to find the Raspberry Pis, which can be achieved with <a class="reference external" href="https://nmap.org/">nmap</a>. Raspberry Pi devices can be recognized because their MAC addresses are issued by the organization &quot;Raspberry Pi Trading&quot;.</p>
+<p>This allows to automate the discovery process by enumerating interfaces with <tt class="docutils literal">ip</tt> then enumerating the Raspberry Pis on each interface with <tt class="docutils literal">nmap</tt>:</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Looking for Raspberry Pis...&quot;</span>
+<span class="nv">IFACES</span><span class="o">=</span><span class="k">$(</span>ip<span class="w"> </span>-4<span class="w"> </span>-o<span class="w"> </span>addr<span class="w"> </span>show<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;/docker0/ {found=1; next} /scope global/ {print $4}&#39;</span><span class="k">)</span>
+<span class="nv">RPI_ADDRS</span><span class="o">=()</span>
+<span class="k">for</span><span class="w"> </span>IFACE<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$IFACES</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Scanning on interface </span><span class="nv">$IFACE</span><span class="s2">...&quot;</span>
+<span class="w">    </span><span class="nv">ADDRS</span><span class="o">=</span><span class="k">$(</span>sudo<span class="w"> </span>nmap<span class="w"> </span>-n<span class="w"> </span>-sP<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$IFACE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep …</pre></div></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/enumerating-raspberry-pis.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-usb-furby.html" rel="bookmark" title="Permalink to A USB-controlled Furby">A USB-controlled Furby</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">20/05/2021</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/furby.html">Furby</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>        </div>
+    </header>
+    <div class="summary"><p>The original <a class="reference external" href="https://en.wikipedia.org/wiki/Furby">Furby</a> from Tiger
+Electronics was a huge phenomenon at the end of the 1990s. In this article,
+we are going to replace a Furby's electronics to transform it into
+a USB-controlled puppet.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20210506_193410_fixed.jpg"><img alt="The blue-eyed brown-bellied cute horror" src="https://blog.chapelierfou.org/images/IMG_20210506_193410_fixed-small.jpg" /></a>
+<p class="caption">The blue-eyed brown-bellied cute horror</p>
+</div>
+<p>The little beaked Mogwais looked quite alive and faked learning
+processes pretty well. As electronic talking toys were still a novelty back
+then, its capacities were grossly over-estimated, especially among children.
+For instance, the microphone is limited to sensing the noise level to talk
+back when you talk to it, it is actually unable to differentiate noises,
+let alone interpret speech.</p>
+<p>In reality, the technology was already old. As the
+<a class="reference external" href="https://patents.google.com/patent/US6544098B1/en">patent</a> indicates,
+Furbys were built around a 8-bit
+<a class="reference external" href="https://ia803100.us.archive.org/7/items/SPC81A/SPC81A.pdf">SunPlus SPC81A</a>
+microcontroller, basically a crippled 6502 processor with 128 bytes of RAM
+(yes, bytes). The original
+<a class="reference external" href="https://en.wikipedia.org/wiki/MOS_Technology_6502">MOS Technology 6502 processor</a>
+was introduced in 1975 and became pretty popular because it was extremely
+cheap. For instance, the Atari 2600 and Apple II were both built around
+modified 6502 processors. It was a strong influence in the design of RISC
+architectures, in particular ARM processors. The voice synthesis is handled by
+a <a class="reference external" href="https://www.ti.com/lit/ml/spss011d/spss011d.pdf">Texas Instruments …</a></p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-usb-furby.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/converting-a-unipolar-stepper-to-bipolar.html" rel="bookmark" title="Permalink to Converting a unipolar stepper to bipolar">Converting a unipolar stepper to bipolar</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">29/07/2020</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>        </div>
+    </header>
+    <div class="summary"><p>Here is the situation: I have a <a class="reference external" href="https://www.ebay.com/sch/i.html?_nkw=28BYJ-48">28BYJ-48 motor</a>, a cheap unipolar stepper motor. However, I would like to drive it as a bipolar stepper motor.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20200506_191545.jpg"><img alt="A 28BYJ-48 stepper motor" src="https://blog.chapelierfou.org/images/IMG_20200506_191545-small.jpg" /></a>
+<p class="caption">A 28BYJ-48 stepper motor</p>
+</div>
+<p>Unipolar stepper motors have 5 wires, whereas bipolar ones have only 4 wires. The 5th wire is a common wire joining the coils, creating 4 half-coils that can be enabled independently.</p>
+<div class="figure">
+<img alt="Schema of a unipolar stepper motor" src="https://blog.chapelierfou.org/images/schema_steppers.png" />
+<p class="caption">Schema of unipolar and bipolar stepper motors</p>
+</div>
+<p>Both types of stepper motors are not driven the same way. Unipolar steppers are simpler to drive since you don't need to reverse the current: the driver only applies the tension to the common wire and sequencially grounds the other wires to power the half-coils. The drawback of course is that they are less powerful because only half of each coil is powered at a given time, so you get half the torque for the same coil length.</p>
+<p>Luckily, you can use a unipolar stepper as a bipolar one with twice the torque, provided you have a circuit able to drive it. The modification is indeed rather simple: you need to remove the common wire and cut the link between the coils …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/converting-a-unipolar-stepper-to-bipolar.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/an-enhanced-3d-printed-nas.html" rel="bookmark" title="Permalink to An enhanced 3D-printed NAS">An enhanced 3D-printed NAS</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">22/01/2020</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/hardware.html">Hardware</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>        </div>
+    </header>
+    <div class="summary"><p>I got numerous comments about my <a class="reference external" href="https://blog.chapelierfou.org/a-small-3d-printed-nas.html">3D printed NAS</a>. An issue encountered by multiple people is that it is now virtually impossible to come around a similar USB hub. Indeed, I used a store brand one and the product has been discontinued for some time...</p>
+<p>Let's build an enhanced version solving that issue!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20181031_085656.jpg"><img alt="The finished NAS" src="https://blog.chapelierfou.org/images/IMG_20181031_085656-small.jpg" /></a>
+<p class="caption">The finished NAS</p>
+</div>
+<p>The <a class="reference external" href="https://blog.chapelierfou.org/a-small-3d-printed-nas.html">first version of the case</a> was designed with
+<a class="reference external" href="http://www.openscad.org/">OpenSCAD</a> and 3D-printed. I modified it to accomodate a new wider 4-port USB hub and a more efficient 40mm fan at the rear instead of the small one on the lid. You can download the new SCAD source files and STL files <a class="reference external" href="https://blog.chapelierfou.org/files/paulonas2.zip">here</a> (licensed under <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a>).</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/nas2_models.png"><img alt="3D models of the enhanced case" src="https://blog.chapelierfou.org/images/nas2_models.png" /></a>
+<p class="caption">3D models of the enhanced case</p>
+</div>
+<p>In addition, we'll use the following elements:</p>
+<ul class="simple">
+<li>A <a class="reference external" href="https://www.raspberrypi.org/products/raspberry-pi-3-model-b-plus/">Raspberry Pi Model B (2, 3, 3+ or 4)</a>, obviously</li>
+<li>A <a class="reference external" href="https://www.anker.com/ca/products/variant/4port-ultra-slim-usb-30-hub/A7518111">4-Port Ultra Slim USB 3.0 Hub with USB charger from Anker</a> (warning, there is also a version without the micro-USB charger port, you need model <a class="reference external" href="https://www.anker.com/ca/products/variant/4port-ultra-slim-usb-30-hub/A7518111">A7518111</a> or <a class="reference external" href="https://www.anker.com/fr/products/variant/4port-ultra-slim-usb-30-hub/A7518311">A7518311</a> to power the NAS through the hub)</li>
+<li>Two <a class="reference external" href="http://www.raidsonic.de/products/adapter_multidocking/hdd_ssd_adapter/index_en.php?we_objectID=2051">2.5&quot; SATA to USB adapter cable IB-AC6033-U3 from Icy Box</a></li>
+<li>Two 2.5&quot; SATA hard disks …</li></ul></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/an-enhanced-3d-printed-nas.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-high-tech-minitel.html" rel="bookmark" title="Permalink to A High-Tech Minitel">A High-Tech Minitel</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">27/10/2019</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/hardware.html">Hardware</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>        </div>
+    </header>
+    <div class="summary"><p>This article is the continuation of my Minitel series: <a class="reference external" href="https://blog.chapelierfou.org/a-minitel-as-a-linux-terminal.html">a Minitel as a Linux terminal</a>, and <a class="reference external" href="https://blog.chapelierfou.org/a-minitel-2.0.html">a Minitel 2.0</a>.</p>
+<p>It's rather easy to remove legacy electronics and unmount the cathodic tube from the Minitel to replace them with a Raspberry Pi and a flat screen. However, the difficult part would be adapting the Minitel's proprietary keyboard.</p>
+<p>Therefore, in this article, we will first make a generic USB keyboard controller for the Minitel 1B out of an Arduino board. We'll use an <a class="reference external" href="https://www.sparkfun.com/products/12640">Arduino Pro Micro</a>. It is roughly equivalent to the Pro Mini, except it has an on-board USB transceiver, which will allow us to configure it as a USB Keyboard. Then, we'll fit a 8-inch LCD panel to replace the old CRT. I chose an <a class="reference external" href="https://www.ebay.com/sch/i.html?_nkw=HE080IA-01D">Innolux HE080IA-01D</a> panel with driver board. Its dimensions and 1024x768 resolution make it a perfect candidate for our use case here.</p>
+<p>The Minitel's keyboard is a simple matrix one. Key presses close circuits, and by continuously scanning the matrix, the controller can deduce which keys are pressed. Sadly, the matrix is non-standard, so we have to retro-engineer it...</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_211544.jpg"><img alt="The keyboard contact board extracted from a Minitel" src="https://blog.chapelierfou.org/images/IMG_20190712_211544-small.jpg" /></a>
+<p class="caption">The keyboard contact board extracted from …</p></div></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-high-tech-minitel.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-minitel-2.0.html" rel="bookmark" title="Permalink to A Minitel 2.0">A Minitel 2.0</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">21/07/2019</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/hardware.html">Hardware</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>        </div>
+    </header>
+    <div class="summary"><p>This article is the continuation of <a class="reference external" href="https://blog.chapelierfou.org/a-minitel-as-a-linux-terminal.html">my previous article on the Minitel</a>.</p>
+<p>These are dark times we live in. Far from the original design of the Internet whose cornerstone was decentralisation, the Web has created a split between servers and clients, between service providers and service consumers, between the ones who harvest data and the ones who are harvested. To use the expression forged by <a class="reference external" href="https://www.fdn.fr/actions/confs/internet-libre-ou-minitel-2-0/">Benjamin Bayart (in French)</a>, the Internet is bascially converging back to a Minitel 2.0.</p>
+<p>Let's take the statement literally and build an actual Minitel 2.0!</p>
+<p>My idea is simple: there is an unused extension bay at the rear of the Minitel 1B where we can lodge a Rasberry Pi connected to the Minitel as its terminal. This will effectively add modern Ethernet, Wifi, and USB connectivity to a 35-year-old Minitel.</p>
+<p>To hold the Pi, I designed and 3D-printed a replacement for the rear panel. The OpenSCAD source and the STL models are <a class="reference external" href="https://blog.chapelierfou.org/files/mntl_rpi_models.zip">available here</a> (under GPLv3).</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/minitel_models.png"><img alt="Replacement for the rear panel holding the Raspberry Pi" src="https://blog.chapelierfou.org/images/minitel_models.png" /></a>
+<p class="caption">Replacement for the rear panel holding the Raspberry Pi</p>
+</div>
+<p>The support piece is printed separately, then clipped and glued to the panel before the Pi is secured …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-minitel-2.0.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/eyepot-programming.html" rel="bookmark" title="Permalink to Eyepot - Programming">Eyepot - Programming</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">17/03/2018</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/video.html">Video</a>        </div>
+    </header>
+    <div class="summary"><p>Let's program the robot I built in <a class="reference external" href="https://blog.chapelierfou.org/eyepot-a-creepy-teapot.html">the previous article</a>!</p>
+<p>The Eyepot works by using in conjunction a <a class="reference external" href="https://www.raspberrypi.org/products/raspberry-pi-zero-w/">Raspberry Pi Zero W</a> and an <a class="reference external" href="https://store.arduino.cc/usa/arduino-pro-mini">Arduino Pro Mini</a> connected by a serial link. Therefore, we'll write the Arduino code first, then a Python program for the Raspberry Pi. Then, we'll setup remote control from a web browser.</p>
+<p>You can find the entire source code for the project licensed under <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a> on <a class="reference external" href="https://github.com/paullouisageneau/eyepot">my repository on GitHub</a>.</p>
+<div class="figure">
+<img alt="The finished Eyepot moving" src="https://blog.chapelierfou.org/images/eyepot_loop.gif" style="width: 480px;" />
+<p class="caption">The finished Eyepot moving</p>
+</div>
+<p><strong>Arduino program</strong></p>
+<p>The Arduino Pro Mini is responsible for driving the eight servos of the legs. Commands to specify target angles are sent from the Raspberry Pi through a serial link.</p>
+<p>The custom serial protocol is text-based and quite simple. It can easily be typed manually when debugging, but it is still compact enough to allow short transmission times even at low bitrates. Each line contains a one-character command, an optional space, and an optional parameter as a base-10 integer. Implemeted commands are as follows:</p>
+<ul class="simple">
+<li><tt class="docutils literal">0</tt> to <tt class="docutils literal">7</tt>: store target angle for corresponding servo (0 to 7)</li>
+<li><tt class="docutils literal">R</tt>: reset stored target angle to default for each servo</li>
+<li><tt class="docutils literal">C</tt>: commit stored target angles …</li></ul></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/eyepot-programming.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/eyepot-a-creepy-teapot.html" rel="bookmark" title="Permalink to Eyepot: a creepy teapot">Eyepot: a creepy teapot</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">17/03/2018</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>        </div>
+    </header>
+    <div class="summary"><p>What has four legs but only one eye? A teapot of course!</p>
+<p>My new robot is based on a <a class="reference external" href="https://www.raspberrypi.org/products/raspberry-pi-zero-w/">Raspberry Pi Zero W</a> with a camera. It is connected via a serial link to an <a class="reference external" href="https://store.arduino.cc/usa/arduino-pro-mini">Arduino Pro Mini</a> board, which drives servos. Since each one of the four legs will have two articulations, each with one servo, we need eight servos in total.</p>
+<p>Here is a list of the material we will use:</p>
+<ul class="simple">
+<li>a <a class="reference external" href="https://www.raspberrypi.org/products/raspberry-pi-zero-w/">Raspberry Pi Zero W</a></li>
+<li>a <a class="reference external" href="https://www.raspberrypi.org/products/camera-module-v2/">Raspberry Pi camera module V2</a></li>
+<li>a <a class="reference external" href="https://thepihut.com/products/raspberry-pi-zero-camera-adapter">camera adapter</a> for the Raspberry Pi Zero</li>
+<li>an <a class="reference external" href="https://www.sparkfun.com/products/11114">Arduino Pro Mini 3.3V/8MHz</a></li>
+<li>8 micro servos 9g rated ~5V (<a class="reference external" href="https://www.ebay.com/sch/Tower%20Pro%20SG90">Tower Pro SG90</a> or similar)</li>
+<li>a <a class="reference external" href="https://www.ebay.com/sch/UBEC%205V%203A">5V switching regulator</a> rated at least 3A</li>
+<li>a <a class="reference external" href="https://www.ebay.com/sch/2S%20LiPo%20battery">2S LiPo battery</a>, 1000mAh is good</li>
+<li>a <a class="reference external" href="https://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Dcomputers&amp;field-keywords=micro+sd+card">MicroSD card</a> for the Raspberry Pi, 16GB is good</li>
+<li>a <a class="reference external" href="http://www.ebay.com/sch/CP2102">USB to UART bridge</a> to program the Arduino board</li>
+<li>Dupont wires, screws, pins, prototype board, soldering material, and glue</li>
+</ul>
+<p>Let's start by designing and printing the parts. I use OpenSCAD, and print with white PLA, as usual.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/eyepot_models.png"><img alt="View of the 3D models set" src="https://blog.chapelierfou.org/images/eyepot_models.png" /></a>
+<p class="caption">View of the 3D models set</p>
+</div>
+<p>You can download the SCAD source files (licensed under <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a>) and …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/eyepot-a-creepy-teapot.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/plasteac-enhancements.html" rel="bookmark" title="Permalink to Plasteac - Enhancements">Plasteac - Enhancements</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">27/04/2017</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a>        </div>
+    </header>
+    <div class="summary"><p>You must remember my cute <a class="reference external" href="https://blog.chapelierfou.org/plasteac-a-dancing-teapot.html">robotic dancing
+teapot</a>.
+It works great, but it has a little drawback: you need to open it to
+physically connect and disconnect the battery. Therefore, let's fix that
+issue by integrating a switch directly in the teapot lid!</p>
+<p>I designed three new plastic parts for the second version of the lid.
+The new lid features a hole instead of the handle, and the actual handle
+is to be glued to an axis going through the lid, with an elliptic lever
+at the bottom. The lever shall push a <a class="reference external" href="https://en.wikipedia.org/wiki/Miniature_snap-action_switch">micro
+switch</a>
+attached on the inside of the lid, just like you would press a button.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/plasteac_newlid_model.png"><img alt="The three new parts" src="https://blog.chapelierfou.org/images/plasteac_newlid_model.png" /></a>
+<p class="caption">The three new parts: the lid with a hole, the handle, and the button switch</p>
+</div>
+<p>You can download the new SCAD source files (licensed under
+<a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a>) and the
+corresponding STL files on <a class="reference external" href="https://github.com/paullouisageneau/plasteac/tree/master/models">my GitHub
+repository</a>.
+Apart from a <a class="reference external" href="http://ebay.com/sch/micro%20switch">micro switch</a>, I'll
+also use prototype board, pins, and a Dupont wire.</p>
+<p>One the parts are printed, the handle is glued to the axis that goes
+through the lid. Then, the micro switch is soldered to a piece of
+prototype board. Two pins …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/plasteac-enhancements.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/playing-music-on-arduino.html" rel="bookmark" title="Permalink to Playing music on Arduino">Playing music on Arduino</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">20/04/2017</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/music.html">Music</a>        </div>
+    </header>
+    <div class="summary"><p>Provided you connect a <a class="reference external" href="https://en.wikipedia.org/wiki/Piezoelectric_speaker">piezo
+speaker</a> to your
+<a class="reference external" href="https://www.arduino.cc/">Arduino</a> board, the <tt class="docutils literal">tone</tt> Arduino
+function allows to play tones given their frequencies. Let's use it to
+play entire melodies!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20170420_143033.jpg"><img alt="The Arduino board of my robotic teapot with a piezo sounder" src="https://blog.chapelierfou.org/images/IMG_20170420_143033-small.jpg" /></a>
+<p class="caption">The Arduino board of <a class="reference external" href="https://blog.chapelierfou.org/plasteac-a-dancing-teapot.html">my robotic teapot</a> with a piezo sounder</p>
+</div>
+<p>The melody encoding format I'll use is compact and pretty
+straightforward, but I admit it isn't the easiest one to read. The
+melody is represented as a <a class="reference external" href="https://en.wikipedia.org/wiki/Null-terminated_string">null-terminated
+string</a> of
+chars, in which each note is described by 3 consecutive characters:</p>
+<ol class="arabic simple">
+<li>The note duration in sixteenth notes as an hexadecimal digit between
+0 and F (0 has a special meaning and is interpreted as a whole note)</li>
+<li>The note name in English notation as an uppercase letter, or
+lowercase if sharp (R has a special meaning and indicates a rest)</li>
+<li>The octave number as a decimal digit, between 0 and 8 (for a rest,
+the value is ignored)</li>
+</ol>
+<p>So for instance, a quarter-note C from the 5th octave is <tt class="docutils literal">4C5</tt>, and a
+eighth-note D sharp from the 4th octave is <tt class="docutils literal">2d4</tt>.</p>
+<p>With this notation, the <a class="reference external" href="https://en.wikipedia.org/wiki/Korobeiniki">Tetris
+theme</a> is:</p>
+<pre class="code literal-block">
+4E52B42C54D52C52B44A42A42C54E52D52C56B42C54D54E54C54A42A42A42B42C56D52F54A52G52F56E52C54E52D52C54B42B42C54D54E54C54A44A44R0
+</pre>
+<p>In this example, a <a class="reference external" href="https://www.adafruit.com/product/160">piezo passive
+sounder</a> is connected on pin 3 …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/playing-music-on-arduino.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/plasteac-a-dancing-teapot.html" rel="bookmark" title="Permalink to Plasteac: a dancing teapot">Plasteac: a dancing teapot</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">18/04/2017</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>        </div>
+    </header>
+    <div class="summary"><p>The <a class="reference external" href="https://www.thingiverse.com/thing:43708">Bob robot</a>, itself
+remixed from the <a class="reference external" href="https://www.thingiverse.com/thing:19594">Arduped
+robot</a>, inspired an
+impressive number of clones with its really good design.</p>
+<p>The most famous ones might be
+<a class="reference external" href="https://www.thingiverse.com/thing:747010">Zowi</a>, and more recently
+<a class="reference external" href="https://www.thingiverse.com/thing:1568652">Otto</a>. They are both
+simple, cheap, open-source and 3D-printed little robots which have
+refined Bob two-legged design.</p>
+<p>Yet, I am not a fan of their strange square heads. What I would like is
+a teapot. A dancing teapot.</p>
+<p>I chose to design 3D-printed parts from scratch, not only because I
+prefer to use <a class="reference external" href="http://www.openscad.org/">OpenSCAD</a> over FreeCAD, but
+also because the design of the top part will be entierly different
+anyway. Also, for once, it will be powered by a 9-volt alkaline battery
+rather than a lipo battery.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/plasteac_model.png"><img alt="3D models forming the robotic teapot" src="https://blog.chapelierfou.org/images/plasteac_model.png" /></a>
+<p class="caption">3D models forming the robotic teapot</p>
+</div>
+<p>You can download the SCAD source files (licensed under
+<a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a>) and the
+corresponding STL files
+<a class="reference external" href="https://blog.chapelierfou.org/files/plasteac_models.zip">here</a> or on <a class="reference external" href="https://github.com/paullouisageneau/plasteac/tree/master/models">my
+GitHub
+repository</a>.
+I printed them with white
+<a class="reference external" href="https://en.wikipedia.org/wiki/Polylactic_acid">PLA</a>, not the
+fanciest color but the perfect one for a teapot.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20170417_164518.jpg"><img alt="The components ready to assemble" src="https://blog.chapelierfou.org/images/IMG_20170417_164518-small.jpg" /></a>
+<p class="caption">The components are ready to assemble</p>
+</div>
+<p>You might have recognized the shape of the famous <a class="reference external" href="https://en.wikipedia.org/wiki/Utah_teapot">Utah
+teapot</a>! However, this
+is a subdivided and smoother model since the original is …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/plasteac-a-dancing-teapot.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-telepresence-robot-enhancements.html" rel="bookmark" title="Permalink to A telepresence robot - Enhancements">A telepresence robot - Enhancements</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">30/03/2017</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a>        </div>
+    </header>
+    <div class="summary"><p>In this article, I'm going to describe architecture enhancements for the
+control system of the WebRTC-controlled telepresence robot I built a few
+months ago, presented <a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html">in a previous
+article</a>.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20170330_185921.jpg"><img alt="The four-wheel base of the telepresence robot" src="https://blog.chapelierfou.org/images/IMG_20170330_185921-small.jpg" /></a>
+<p class="caption">The four-wheel base of the telepresence robot</p>
+</div>
+<p>Since I did not manage to have a satisfying
+<a class="reference external" href="https://webrtc.org/">WebRTC</a> support directly in a native Android
+app, I previously <a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html">settled for a
+hack</a>
+where the smartphone of the Telebot uses two different connections to
+the signaling channel: one to receive user control in the Android app,
+and one to handle the WebRTC session in the browser.</p>
+<p>This was bad for two reasons:</p>
+<ul class="simple">
+<li>The robot can enter an incoherent state if one connection is closed
+and not the other.</li>
+<li>User control commands do not benefit from WebRTC, instead they travel
+through the server, adding latency and jitter.</li>
+</ul>
+<p>The idea for the new architecture is to have the Android app run a small
+HTTP server in background that can accept motor control commands and
+send them to the Bluetooth device. We will send users commands on an
+<tt class="docutils literal">RTCDataChannel</tt> and forward them to this small HTTP server with
+JavaScript in the browser.</p>
+<div class="figure">
+<img alt="General schematic of the enhanced architecture" src="https://blog.chapelierfou.org/wp-content/uploads/2017/03/schema_telebot_arch.png" />
+<p class="caption">General schematic of the enhanced …</p></div></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-telepresence-robot-enhancements.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/streaming-from-linux-to-a-chromecast.html" rel="bookmark" title="Permalink to Streaming from Linux to a Chromecast">Streaming from Linux to a Chromecast</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">11/01/2017</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/networks.html">Networks</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/video.html">Video</a>        </div>
+    </header>
+    <div class="summary"><p>The <a class="reference external" href="https://en.wikipedia.org/wiki/Chromecast">Google Chromecast</a> is
+an impressive little device. If you haven't encountered one already,
+it's a small HDMI dongle which, when connected to a TV screen, allows to
+play audio, video, or visual content of a compatible webapp from a
+computer or mobile device.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/google_chromecast.jpg"><img alt="Google Chromecast" src="https://blog.chapelierfou.org/images/google_chromecast.jpg" style="width: 50%;" /></a>
+</div>
+<p>However, it is primarily designed to only stream content from the Web,
+and not from your computer itself, which follows the current trend that
+everything should be &quot;in the cloud&quot; and is infuriatingly limiting. As
+you can guess, that dubious ideology is not my cup of tea.</p>
+<p>Luckily, the excellent library
+<a class="reference external" href="https://github.com/balloob/pychromecast">PyChromecast</a> allows to
+control the device from a Python program. Yet the issue is that it only
+works for codecs the Chromecast is able to decode natively, <em>i.e.</em>,
+H.264 and VP8. Besides, the Chromecast is only able to handle a few
+containers like MP4 and WebM. What if you want to stream other video
+formats ? Besides, what if you want to stream dynamically-generated
+content, for instance your screen or a live video from a camera ?</p>
+<p>Introducing <a class="reference external" href="https://ffmpeg.org/">ffmpeg</a>!</p>
+<div class="highlight"><pre><span></span>ffmpeg<span class="w"> </span>-i<span class="w"> </span>test.avi<span class="w"> </span>-c:v<span class="w"> </span>libvpx<span class="w"> </span>-c:a<span class="w"> </span>libvorbis<span class="w"> </span>-f<span class="w"> </span>webm<span class="w"> </span>out.webm
+</pre></div>
+<p>In this …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/streaming-from-linux-to-a-chromecast.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html" rel="bookmark" title="Permalink to A telepresence robot - Programming">A telepresence robot - Programming</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">04/09/2016</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a>        </div>
+    </header>
+    <div class="summary"><p>In this article we are going to program the Telebot we have built in
+<a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-building.html">the previous article</a>.</p>
+<p>We will use <a class="reference external" href="https://webrtc.org/">WebRTC</a>, which is the new standard
+for real-time communication in Web browsers, and take advantage of the
+necessary signaling channel to also transmit commands to move the robot.</p>
+<div class="figure">
+<img alt="General schematic of the whole control system" src="https://blog.chapelierfou.org/images/schema_telebot_system.png" />
+<p class="caption">General schematic of the whole control system</p>
+</div>
+<p>Programming the robot actually consists of three different steps:</p>
+<ul class="simple">
+<li>Writing <a class="reference external" href="https://www.arduino.cc/en/Reference/HomePage">Arduino-flavored C++
+code</a> for the
+Arduino-like controller to properly move and balance the robot</li>
+<li>Building a specific Android application to handle a
+<a class="reference external" href="https://webrtc.org/">WebRTC</a> session on the smartphone and relay
+commands to the controller via Bluetooth</li>
+<li>Setting up a <a class="reference external" href="https://nodejs.org/">node.js</a> server to serve an
+HTML5 control page over HTTPS allowing visioconference and remote
+control</li>
+</ul>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160901_203722.jpg"><img alt="The Telebot ready to be programmed" src="https://blog.chapelierfou.org/images/IMG_20160901_203722-small.jpg" style="width: 50%;" /></a>
+<p class="caption">The Telebot ready to be programmed</p>
+</div>
+<p>Therefore, the project will be a mix of Arduino, Android Java, and
+Javascript (client-side and server-side). The source code is free
+software, licensed under <a class="reference external" href="https://tldrlegal.com/license/bsd-2-clause-license-%28freebsd%29">BSD 2-clause
+license</a>
+and <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a> (Arduino
+code). The complete source for the project is available on <a class="reference external" href="https://github.com/paullouisageneau/telebot">my
+repository on GitHub</a>.</p>
+<p><strong>Arduino programming</strong></p>
+<p>First, motor control is achieved through an extremely simple text
+protocol over the Bluetooth serial, with one single-letter command …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-telepresence-robot-building.html" rel="bookmark" title="Permalink to A telepresence robot - Building">A telepresence robot - Building</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">04/09/2016</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>        </div>
+    </header>
+    <div class="summary"><p><a class="reference external" href="https://en.wikipedia.org/wiki/Telerobotics#Telepresence_and_videoconferencing">Telepresence
+robots</a>
+are pretty cool, so let's build my own Telebot!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/schema_telebot_simple.png"><img alt="Schema of a telepresence robot" src="https://blog.chapelierfou.org/images/schema_telebot_simple.png" /></a>
+<p class="caption">The telepresence robot allows visioconferencing while moving around</p>
+</div>
+<p>The robot will be built as a base with 4 wheels, on top of which a
+vertical pole allows to stick a smartphone. The smartphone, connected to
+the base via Bluetooth, will permit visioconference via
+<a class="reference external" href="https://webrtc.org/">WebRTC</a> and remote control at the same time,
+allowing to move around. Even if the center of gravity is quite high, a
+gyroscope will prevent the robot from falling over. The base will be
+powered by lithium-polymer batteries and rechargeable via a USB
+connector.</p>
+<img alt="Telebot moving around" src="https://blog.chapelierfou.org/images/telebot.gif" style="width: 270px;" />
+<p>This article covers building the robot, while <a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html">the next
+article</a>
+focuses on programming it.</p>
+<p>We will use the following components:</p>
+<ul class="simple">
+<li>Chevino: an <a class="reference external" href="https://www.arduino.cc/en/Main/ArduinoBoardProMini">Arduino Pro
+Mini</a> clone
+(<a class="reference external" href="http://www.ebay.com/sch/ATmega328P%205V%2016Mhz">any other
+clone</a> will do
+the job)</li>
+<li><a class="reference external" href="http://www.ebay.com/sch/L298N">L298N</a>: Dual H-bridge with 5V
+regulated output</li>
+<li><a class="reference external" href="http://www.ebay.com/sch/MPU6050">MPU-6050</a>: Accelerometer and
+gyro with I2C interface</li>
+<li><a class="reference external" href="http://www.ebay.com/sch/HC06%20bluetooth">HC-06</a>: Slave serial
+Bluetooth module</li>
+<li><a class="reference external" href="http://www.ebay.com/sch/TP4056%20charger">TP4056</a>: 5V 1A linear
+single-cell lipo battery charger with mini-USB port</li>
+<li><a class="reference external" href="http://www.ebay.com/sch/N20%20150RPM%20motor">2 DC motors</a>: 6V
+150RPM geared DC motors with 3mm shaft</li>
+<li><a class="reference external" href="http://www.ebay.com/sch/lipo%201s%201200mAh">2 lipo batteries</a>:
+Single-cell 1200mAh 25C lithium-polymer batteries</li>
+<li><a class="reference external" href="http://www.ebay.com/sch/MTS-203%20switch">DPDT switch</a>:
+Double-Pole Double-Throw switch (MTS-203 type)</li>
+<li><a class="reference external" href="http://www.ebay.com/sch/CP2102">A USB to …</a></li></ul></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-telepresence-robot-building.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-minitel-as-a-linux-terminal.html" rel="bookmark" title="Permalink to A Minitel as a Linux terminal">A Minitel as a Linux terminal</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">12/06/2016</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/hardware.html">Hardware</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a>        </div>
+    </header>
+    <div class="summary"><p>The Minitel (from the French <em>Médium Interactif par Numérisation
+d'Information Téléphonique</em>) was an interactive videotex online service
+accessible through phone lines, operated in France from 1982 by the
+state-owned PTT (Postes, Télégraphes et Téléphones), the ancestor of
+France Télécom. The service was retired in 2012, after more than 30
+years of existence. It might have been the world's most successful early
+online service, before the World Wide Web era. It offered services like
+telephone directory, purchases, reservations, mail, and chat just like
+the Web offers today.</p>
+<p>The Minitel, starting from model 1B, can be used as a VT100-compatible
+Linux terminal with the proper wiring. So let's try...</p>
+<div class="figure">
+<a class="reference external image-reference" href="http://www.museedesconfluences.fr/fr/ressources/minitel-1"><img alt="Minitel 1" src="https://blog.chapelierfou.org/images/minitel1.jpg" /></a>
+<p class="caption">The first version of the Minitel, made by Telic Alcatel. So 80s.</p>
+</div>
+<p>Before starting to tinker, it's interesting to recall that the story
+behind the Minitel is actually pretty tragic despite its success. In
+the 70s, France was leading research on packet-switched networks. The
+<a class="reference external" href="https://en.wikipedia.org/wiki/CYCLADES">CYCLADES</a> project,
+directed by <a class="reference external" href="https://en.wikipedia.org/wiki/Louis_Pouzin">Louis
+Pouzin</a>, inventor of
+the datagram, designed an early datagram-based packet communications
+network. In parallel, the French PTT was developing Transpac, a packet
+network based on virtual circuit switching with the emerging X.25
+standard …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-minitel-as-a-linux-terminal.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/an-ethernet-tor-box.html" rel="bookmark" title="Permalink to An Ethernet Tor box">An Ethernet Tor box</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">08/09/2015</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/networks.html">Networks</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a>        </div>
+    </header>
+    <div class="summary"><p>You are without doubt already familiar with the <a class="reference external" href="https://www.torproject.org/">Tor
+project</a>. The <a class="reference external" href="https://www.torproject.org/projects/torbrowser.html.en">Tor
+browser</a> is
+already a very handy tool to surf anonymously, but what if we had an
+entire network's traffic forwarded through Tor via a special gateway?
+Let's transform a tiny router in a transparent Tor proxy, a portable
+Wifi access point redirecting all traffic to the Tor network!</p>
+<a class="reference external image-reference" href="https://en.wikipedia.org/wiki/Tor_%28anonymity_network%29"><img alt="Tor logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Tor-logo-2011-flat.svg/640px-Tor-logo-2011-flat.svg.png" style="width: 50%;" /></a>
+<p>Let's begin with a short presentation of one of my favorite hackable
+network devices: the
+<a class="reference external" href="http://www.tp-link.com/en/products/details/cat-4691_TL-MR3020.html">TL-MR3020</a>.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/TL-MR3020-03-e1441720743578.jpg"><img alt="TP-link TL-MR3020" src="https://blog.chapelierfou.org/images/TL-MR3020-03-e1441720743578.jpg" style="width: 50%;" /></a>
+<p class="caption">The portable 3G/4G wireless N router TL-MR3020 from TP-Link</p>
+</div>
+<p>Despite being marketed as a <em>portable 3G/4G wireless N router</em>, it
+does not possess any kind of mobile telecommunication interface.
+Instead, it's a very small and cheap router featuring a 802.11n
+150Mbps Wifi interface, a 100Mbps ethernet port, and a USB port. It is
+powered over a mini-B USB port and it has an extremely low power
+consumption with an average current draw around 120mA at 5V, <em>i.e.</em>
+600mW. Its hardware is pretty limited: an Atheros AR9331 SoC with a
+400MHz MIPS processor, 32MB of RAM, and 4MB of flash memory.</p>
+<p>The preliminary step for our Tor box is to <a class="reference external" href="http://wiki.openwrt.org/toh/tp-link/tl-mr3020">install …</a></p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/an-ethernet-tor-box.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-small-3d-printed-nas.html" rel="bookmark" title="Permalink to A small 3D-printed NAS">A small 3D-printed NAS</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">19/08/2015</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/hardware.html">Hardware</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>        </div>
+    </header>
+    <div class="summary"><p><strong>EDIT:</strong> I published an updated version of the NAS in a
+<a class="reference external" href="https://blog.chapelierfou.org/an-enhanced-3d-printed-nas.html">more recent article</a>.</p>
+<p>Network-Attached Storages (NAS) are very handy devices on a home
+network. They offer a simple way to share or synchronize files, and can
+host various useful services at the same time provided they are generic
+enough. A NAS being nothing more than a specialized file server, we will
+actually build a small home server than will be able to do anything.</p>
+<p>The functions can be the following:</p>
+<ul class="simple">
+<li>File server (FTP, NFS, SMB/CIFS...)</li>
+<li>Streaming server (audio or video on the local network)</li>
+<li>Personal web server (to host a website, synchonize contacts or send
+files to people)</li>
+<li>Local seedbox (to download torrent files)</li>
+<li>Domotic hub (for instance by adding a Zigbee USB dongle)</li>
+</ul>
+<p>The server will be pretty simple in its technical design: a <a class="reference external" href="https://www.raspberrypi.org/products/raspberry-pi-2-model-b/">Raspberry
+Pi 2 model
+B</a> with
+two hard disks connected with USB adapters.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20150807_195951.jpg"><img alt="The finished NAS featuring a Raspberry Pi 2" src="https://blog.chapelierfou.org/images/IMG_20150807_195951-small.jpg" /></a>
+<p class="caption">The finished NAS featuring a Raspberry Pi 2</p>
+</div>
+<p>The Raspberry Pi is actually not able to power the two drives over USB,
+since we would need 500mA per drive, so 1000mA overall, and the Pi can
+only supply 600mA over …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-small-3d-printed-nas.html">Read more...</a></div>
+    <hr>
+</article></li>
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/a-smart-vpn-gateway.html" rel="bookmark" title="Permalink to A smart VPN gateway">A smart VPN gateway</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">29/06/2015</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/networks.html">Networks</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a>        </div>
+    </header>
+    <div class="summary"><p>My network setup at home is surprisingly pretty common: a DSL modem
+(VDSL2 actually) followed by a router featuring an ethernet switch and
+an 802.11n Wifi access point, configured as a NAT gateway.</p>
+<div class="figure">
+<img alt="My home network setup before modifications" src="https://blog.chapelierfou.org/images/mynetwork_before.png" style="width: 453px;" />
+<p class="caption">My home network setup before modifications</p>
+</div>
+<p>Let's imagine I'm in a country that doesn't care about the right to
+private life of its citizens and performs automated mass surveillance,
+on the pretext of fighting against terrorism or copyright infringement.
+A gloomy perspective for sure, but let's keep that as our work
+hypothesis, <a class="reference external" href="https://www.theverge.com/2015/7/24/9030851/france-surveillance-law-charlie-hebdo-constitutional-court">for what the future holds in store</a>.</p>
+<p>Of course, I could just set up on every computer a VPN whose gateway
+happens to be in a foreign and more respectful country. However,
+multiple VPNs on multiple computers are a highly impractical setup for
+various reasons:</p>
+<ul class="simple">
+<li>VPN configuration has to be done multiple times, and I'm allergic to
+repetitive tasks</li>
+<li>The maximum number of concurrent connections is restricted by VPN
+service providers</li>
+<li>Access to resources on a local network at the same time is a hassle
+and need specific configuration, like DNS settings</li>
+</ul>
+<p>So, why not install the VPN once and for all in a …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/a-smart-vpn-gateway.html">Read more...</a></div>
+    <hr>
+</article></li>
+</ul>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

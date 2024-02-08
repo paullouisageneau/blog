@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Robotics">
+    <meta property="article:published_time" content="2020-12-01">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >A revamped telepresence robot</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">01/12/2020</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>You might be familiar with my smarthphone-based Telebot:
+<a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-building.html">the previous article</a>.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/schema_telebot_simple.png"><img alt="Schema of a telepresence robot" src="https://blog.chapelierfou.org/images/schema_telebot_simple.png" /></a>
+<p class="caption">The telepresence robot allows visioconferencing while moving around</p>
+</div>
+<p>This new telepresence robot will be built on a 3-wheel base,
+on top of which a screen sits on a vertical pole, with a Raspberry Pi behind it.</p>
+<p>We will use the following components:</p>
+<ul class="simple">
+<li>An <a class="reference external" href="https://www.arduino.cc/en/Main/ArduinoBoardProMini">Arduino Pro Mini</a></li>
+<li><a class="reference external" href="https://www.ebay.com/sch/i.html?_nkw=28BYJ-48">2 28BYJ-48 unipolar motors</a>
+previously <a class="reference external" href="https://blog.chapelierfou.org/converting-a-unipolar-stepper-to-bipolar.html">converted to bipolar</a></li>
+<li>An <a class="reference external" href="http://www.ebay.com/sch/MPU6050">MPU-6050</a> I2C accelerometer and
+gyroscope</li>
+<li>A big 2S lipo battery</li>
+<li><a class="reference external" href="http://www.ebay.com/sch/CP2102">A USB to UART bridge</a> to program
+the Arduino Pro Mini</li>
+<li>Aluminium tubes, diameter 1cm, for the pole</li>
+<li>Of course Dupont cables, wires, screws, and glue</li>
+</ul>
+<p>First, I designed the pieces with <a class="reference external" href="http://www.openscad.org/">OpenSCAD</a>
+and 3D-printed them with PLA.</p>
+<p>TODO</p>
+<p>You can download the SCAD source files and the corresponding STL files
+<a class="reference external" href="https://blog.chapelierfou.org/files/telebot_models.zip">here</a> (licensed
+under <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a>). You may
+also find them in <a class="reference external" href="https://github.com/paullouisageneau/telebot/tree/master/models">my repository on
+GitHub</a>.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/telebot_models.png"><img alt="3D models of the back frame, the front frame, the wheel gear and the wheel" src="https://blog.chapelierfou.org/images/telebot_models.png" /></a>
+<p class="caption">3D models of the back frame, the front frame, the wheel gear and the wheel</p>
+</div>
+<p>Once the pieces are designed, let's print them. I use
+<a class="reference external" href="https://en.wikipedia.org/wiki/Polylactic_acid">PLA</a>, which I find
+better than
+<a class="reference external" href="https://en.wikipedia.org/wiki/Acrylonitrile_butadiene_styrene">ABS</a>.
+It is biodegradable, does not smell while printing and <a class="reference external" href="http://www.fabbaloo.com/blog/2016/1/31/new-data-on-3d-printer-emissions-good-or-bad-news">emits way less
+nanoparticles in the
+air</a>.</p>
+<img alt="3D printer in action" src="https://blog.chapelierfou.org/images/printing.gif" style="width: 660px;" />
+<p>When everything is printed, we have to assemble the robot! The boards
+are fixed with M2x4mm screws. First the Chevino is screwed at the top of
+the back panel, and the L298N at the bottom.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160812_190145.jpg"><img alt="Printed parts and material" src="https://blog.chapelierfou.org/images/IMG_20160812_190145-small.jpg" /></a>
+<p class="caption">Every part is printed, the robot is now ready to be built</p>
+</div>
+<p>Since the motors are brushed, we need to add two parallel capacitors to
+absorb noise created by the arcing as the brushes commutate, because it
+would interfere with the electronics, particularly I2C transmission.
+Capacitors of 100nF should be OK. Besides, we will use
+<a class="reference external" href="https://www.arduino.cc/en/Tutorial/PWM">PWM</a> to drive the motors, so
+they will also help reduce voltage spikes caused by motor inductance.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160823_182554.jpg"><img alt="Wires soldered to the motors with added parallel capacitors" src="https://blog.chapelierfou.org/images/IMG_20160823_182554-small.jpg" /></a>
+<p class="caption">The wires are soldered to the motors with added parallel capacitors</p>
+</div>
+<p>The motors are then clipped in the back frame and connected to the
+outputs of the L298N. They will be locked in place by the front frame.
+The MPU-6050 is fixed at the bottom left of the panel, to be on the axis
+of the wheels. The lipo charger can be clipped at the bottom right.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160823_195911.jpg"><img alt="Components and motors placed in the back panel" src="https://blog.chapelierfou.org/images/IMG_20160823_195911-small.jpg" /></a>
+<p class="caption">Components and motors placed in the back panel</p>
+</div>
+<p>It's time to connect everything, mostly with Dupont wires. The Chevino,
+HC-06 and MPU-6050 are connected to the ground and the 5V output from
+the L298N. Two serials are connected to the Chevino, one for programming
+on the Tx, Rx and DTR pins and one for the HC-06 on pins 8 and 9. The
+MPU-6050 I2C pins are connected to the pins A4 and A5 of the Chevino,
+and the interrupt pin to pin 1. Finally, motor control uses pins 2 to 7,
+with pins 5 and 6 in <a class="reference external" href="https://www.arduino.cc/en/Tutorial/PWM">PWM</a>
+mode to control speed.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/schema_telebot.png"><img alt="Schematic of the connections between components" src="https://blog.chapelierfou.org/images/schema_telebot.png" /></a>
+<p class="caption">Schematic of the connections between components</p>
+</div>
+<p>The
+<a class="reference external" href="https://learn.sparkfun.com/tutorials/switch-basics/poles-and-throws-open-and-closed">DPDT</a>
+switch allows to switch between ON mode and charge mode, simply changing
+where the second battery is connected:</p>
+<ul class="simple">
+<li>In ON mode, batteries are connected in series and provide a 7.4V
+nominal voltage (actually up to 8.4V at full charge) to the L298N.</li>
+<li>In charge mode, batteries are connected in parallel to the lipo
+charger, in order to charge them via USB in a balanced manner.</li>
+</ul>
+<p>A probe is connected from the first battery to the A0 pin of the Chevino
+to measure the battery voltage and approximately deduce the charge left
+to the robot. In particular, this will prevent damaging the batteries by
+allowing the battery voltage to drop under 3.2V while the robot is
+running.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160825_194314.jpg"><img alt="Testing power with a 2S lipo battery" src="https://blog.chapelierfou.org/images/IMG_20160825_194314-small.jpg" /></a>
+<p class="caption">Most components are connected, testing power with a 2S lipo battery</p>
+</div>
+<p>The wheels are not directly on motors axes but rather rotating on
+aluminium-tube axes and driven by internal gears connected to the
+motors. This design is way more robust, as the robot will be quite
+heavy, and it also allows to reduce speed (to roughly 60RPM) and
+increase torque.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160826_202401.jpg"><img alt="Axes and gears for the wheels glued to the frame" src="https://blog.chapelierfou.org/images/IMG_20160826_202401-small.jpg" /></a>
+<p class="caption">Axes and gears for the wheels are glued to the frame</p>
+</div>
+<p>Gears are forced on the motors axes (with a bit of help from a soldering
+iron). Everything is glued with epoxy glue, then wheels are fitted on
+their axes and caps at the extremity are glued too. A few drops of
+vaseline oil help everything rotate smoothly.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160828_195639_rotated.jpg"><img alt="Wheels in place and tightened on the axes with caps" src="https://blog.chapelierfou.org/images/IMG_20160828_195639_rotated-small.jpg" /></a>
+<p class="caption">Wheels are in place and tightened on the axes with caps</p>
+</div>
+<p>The last parts to add before closing the frame with the front part are
+the switch and the USB charger. A bit of soldering is required to
+connect the proper wires to the switch.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160829_195504.jpg"><img alt="The switch soldered and ready to be connected" src="https://blog.chapelierfou.org/images/IMG_20160829_195504-small.jpg" /></a>
+<p class="caption">The switch is soldered and ready to be connected</p>
+</div>
+<p>Once the switch is attached to the front panel, the charger is in place,
+and everything is connected according to the schematic, we can close the
+frame. The four battery wires (with male connectors) need to go out on
+the back through the hole in the back panel.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160829_214629.jpg"><img alt="The switch attached, the charger clipped and the frame closed" src="https://blog.chapelierfou.org/images/IMG_20160829_214629-small.jpg" /></a>
+<p class="caption">The switch is attached to the front panel, the charger is clipped and the frame is closed</p>
+</div>
+<p>I designed the panels so they can be fastened together with six 3.5x30mm
+wood screws. Not the exact use for which they where intended, but it
+works perfectly! The battery compartment is also fastened to the body
+with two of the same screws, after the batteries are properly connected.
+You have to pay attention when connecting the batteries, a mistake could
+create a short circuit which would burn the cables - in the best case...</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160829_214811.jpg"><img alt="The front panel screwed to the back panel" src="https://blog.chapelierfou.org/images/IMG_20160829_214811-small.jpg" /></a>
+<p class="caption">The front panel is screwed to the back panel</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160901_192525.jpg"><img alt="Batteries inside their compartment" src="https://blog.chapelierfou.org/images/IMG_20160901_192525-small.jpg" /></a>
+<p class="caption">Batteries put inside their compartment</p>
+</div>
+<p>Then the connector for the pole is strongly glued to the frame with
+epoxy glue. The pole will have another connector on top to stick the
+smartphone. The back wheels are mounted on a back support that is then
+fixed with two smaller 3.5x20mm wood screws on the bottom of the battery
+compartment. Since the screws stay easily accessible, this design
+enables to easily dismantle everything even after the back wheels caps
+are glued.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160901_192934.jpg"><img alt="The back support glued with back wheels attached" src="https://blog.chapelierfou.org/images/IMG_20160901_192934-small.jpg" /></a>
+<p class="caption">The back support glued with back wheels attached</p>
+</div>
+<p>To get better adherence on the floor, I added two rubber bands per wheel
+as a form of somewhat primitive tires.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160901_200426.jpg"><img alt="The base finished, with its closing lid clipped" src="https://blog.chapelierfou.org/images/IMG_20160901_200426-small.jpg" /></a>
+<p class="caption">The base finished, with its closing lid clipped</p>
+</div>
+<p>Last but not least, we insert the pole with the smartphone sticked on
+the top connector with heavy-duty sticky tack. I've chosen a <a class="reference external" href="https://www.motorola.com/us/products/moto-g-gen-3">Motorola
+Moto G 3</a> running
+Cyanogenmod, but any Android smartphone with a good front camera would
+work. It's also good to add a protective cover to the smartphone, who
+knows what could happen during debugging?</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20160901_200802.jpg"><img alt="The Telebot is finished!" src="https://blog.chapelierfou.org/images/IMG_20160901_200802-small.jpg" /></a>
+<p class="caption">The Telebot is finished!</p>
+</div>
+<p>Now, the next step is of course to program the robot!
+Please refer to <a class="reference external" href="https://blog.chapelierfou.org/a-telepresence-robot-programming.html">the next article</a>.</p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

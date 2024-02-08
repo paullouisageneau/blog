@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Hardware">
+    <meta property="article:published_time" content="2019-07-21">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >A Minitel 2.0</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">21/07/2019</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/hardware.html">Hardware</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>This article is the continuation of <a class="reference external" href="https://blog.chapelierfou.org/a-minitel-as-a-linux-terminal.html">my previous article on the Minitel</a>.</p>
+<p>These are dark times we live in. Far from the original design of the Internet whose cornerstone was decentralisation, the Web has created a split between servers and clients, between service providers and service consumers, between the ones who harvest data and the ones who are harvested. To use the expression forged by <a class="reference external" href="https://www.fdn.fr/actions/confs/internet-libre-ou-minitel-2-0/">Benjamin Bayart (in French)</a>, the Internet is bascially converging back to a Minitel 2.0.</p>
+<p>Let's take the statement literally and build an actual Minitel 2.0!</p>
+<p>My idea is simple: there is an unused extension bay at the rear of the Minitel 1B where we can lodge a Rasberry Pi connected to the Minitel as its terminal. This will effectively add modern Ethernet, Wifi, and USB connectivity to a 35-year-old Minitel.</p>
+<p>To hold the Pi, I designed and 3D-printed a replacement for the rear panel. The OpenSCAD source and the STL models are <a class="reference external" href="https://blog.chapelierfou.org/files/mntl_rpi_models.zip">available here</a> (under GPLv3).</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/minitel_models.png"><img alt="Replacement for the rear panel holding the Raspberry Pi" src="https://blog.chapelierfou.org/images/minitel_models.png" /></a>
+<p class="caption">Replacement for the rear panel holding the Raspberry Pi</p>
+</div>
+<p>The support piece is printed separately, then clipped and glued to the panel before the Pi is secured on it with four screws. A hole on the panel will expose the ports on the back of the Minitel.</p>
+<p>Now the fun part starts. First, we need to open the Minitel by unclipping the back cover.</p>
+<p><em>Warning, as a CRT display, it is dangerous! Very high tensions are applied to the tube, notably by the flyback transformer at the anode cap (up to a few tenth of kV), and the capacitors can keep the charge even after the device is turned off and disconnected. Also, the tube is fragile (especially the neck part) and might violently implode if damaged, which could in addition release potentially toxic materials. Therefore, it is crucial that you take the necessary precautions!</em></p>
+<p>The DIN connector will be hidden by the new panel, so power, ground, TX, and RX are taken directly under the connector by soldering four wires on the motherboard.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20161129_234628.jpg"><img alt="Power, ground, TX, and RX wires soldered to the Minitel motherboard" src="https://blog.chapelierfou.org/images/IMG_20161129_234628-small.jpg" /></a>
+<p class="caption">Power, ground, TX, and RX wires soldered to the Minitel motherboard</p>
+</div>
+<p>The serial levels need to be adapted to 3.3V as required by the Pi. The adaptation circuit is similar to what I did to set up <a class="reference external" href="https://blog.chapelierfou.org/a-minitel-as-a-linux-terminal.html">the Minitel as a terminal</a>, except it will be connected directly to the Pi's UART pins.</p>
+<div class="figure">
+<img alt="Schematic for the adaptation circuit between the Minitel and the Raspberry Pi" src="https://blog.chapelierfou.org/images/schema_minitel_rpi.png" />
+<p class="caption">Schematic for the adaptation circuit between the Minitel and the Raspberry Pi</p>
+</div>
+<p>To power the Raspberry Pi, the 12V tension has to be reduced to 5V. Any 5V switching regulator will do the job, here I use a car electronics regulator but a 5V UBEC (Universal Battery Eliminator Circuit) from an RC hobby shop would be perfect.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20161129_234523.jpg"><img alt="The Raspberry Pi conneted to the Minitel" src="https://blog.chapelierfou.org/images/IMG_20161129_234523-small.jpg" /></a>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20161129_234659.jpg"><img alt="The Raspberry Pi connected to the Minitel" src="https://blog.chapelierfou.org/images/IMG_20161129_234659-small.jpg" /></a>
+<p class="caption">The Raspberry Pi connected to the Minitel</p>
+</div>
+<p>The Pi is powered by the 5V output of the regulator from a 5V pin, and the TX and RX levels are adapted with the homemade circuit shown above.</p>
+<p>I installed <a class="reference external" href="https://www.raspberrypi.org/downloads/raspbian/">Raspbian lite</a> on the Pi, since we won't need fancy graphical stuff.</p>
+<p>The serial works out of the box with a Raspberry Pi 2, but requires proper device tree overlay definitions for a Raspberry Pi 3 or more recent. In a nutshell, the Raspberry Pi features two UARTs, the internal mini UART (on <tt class="docutils literal">/dev/ttyS0</tt>) and the more performant PL011 UART (on <tt class="docutils literal">/dev/ttyAMA0</tt>). Starting from the Raspberry Pi 3, the PL011 UART is dedicated to Bluetooth instead of the serial console by default. The problem is, we need it because the mini UART does not support parity bits. Moreover, the mini UART baudrate is linked to the core frequency, so you have to disable the frequency governor in order to use it.</p>
+<p>In that case, you have two configuration choices in <tt class="docutils literal">/boot/config.txt</tt>:</p>
+<ul class="simple">
+<li>Swap UARTs with <tt class="docutils literal"><span class="pre">dtoverlay=pi3-miniuart-bt</span></tt>, lock the core frequency to 250MHz with <tt class="docutils literal">core_freq=250</tt>, and modify <tt class="docutils literal">/lib/systemd/system/hciuart.service</tt> to use the mini UART on <tt class="docutils literal">ttyS0</tt>. This sacrifices performance but keeps Bluetooth usable.</li>
+<li>Disable Bluetooth entirely with <tt class="docutils literal"><span class="pre">dtoverlay=pi3-disable-bt</span></tt> and <tt class="docutils literal">systemctl disable hciuart</tt>. This has the advantage of not degrading performance.</li>
+</ul>
+<p>More info about this pitfall can be found in the <a class="reference external" href="https://www.raspberrypi.org/documentation/configuration/uart.md">official Raspberry Pi documentation</a>.</p>
+<p>When everything is put back together, the rear panel looks well integrated. It almost looks like a Minitel with Ethernet and USB ports!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20161122_234145.jpg"><img alt="The rear panel when the Minitel is closed" src="https://blog.chapelierfou.org/images/IMG_20161122_234145-small.jpg" /></a>
+<p class="caption">The rear panel when the Minitel is closed</p>
+</div>
+<p>For the Minitel to be operational immediately when turned on, we'll use the <a class="reference external" href="https://github.com/paullouisageneau/PyMinitel">PyMinitel Python library</a> by <a class="reference external" href="https://github.com/Zigazou">Frédéric Bisson</a> (under GPLv3), which implements the proper protocol, to initialize the Minitel as needed:</p>
+<ul class="simple">
+<li>Set the baudrate to 4800bps (the maximum supported rate)</li>
+<li>Set the mode to mixed, aka &quot;mixte&quot;, so the Minitel behaves as a VT100 terminal while still accepting commands (we need to disable echo)</li>
+<li>Set local echo off</li>
+<li>Set cursor visible</li>
+<li>Clear the screen, just to be sure</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: iso-8859-1 -*-</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">minitel.Minitel</span> <span class="kn">import</span> <span class="n">Minitel</span>
+
+<span class="n">port</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;ttyAMA0&#39;</span>
+<span class="n">baudrate</span> <span class="o">=</span> <span class="mi">4800</span>
+
+<span class="n">minitel</span> <span class="o">=</span> <span class="n">Minitel</span><span class="p">(</span><span class="n">peripherique</span> <span class="o">=</span> <span class="s1">&#39;/dev/&#39;</span><span class="o">+</span><span class="n">port</span><span class="p">)</span>
+<span class="n">minitel</span><span class="o">.</span><span class="n">identifier</span><span class="p">()</span>
+<span class="n">minitel</span><span class="o">.</span><span class="n">definir_vitesse</span><span class="p">(</span><span class="n">baudrate</span><span class="p">)</span>
+<span class="n">minitel</span><span class="o">.</span><span class="n">definir_mode</span><span class="p">(</span><span class="s1">&#39;MIXTE&#39;</span><span class="p">)</span>
+<span class="n">minitel</span><span class="o">.</span><span class="n">echo</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">minitel</span><span class="o">.</span><span class="n">curseur</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">minitel</span><span class="o">.</span><span class="n">efface</span><span class="p">()</span>
+</pre></div>
+<p>The setup I previously used to configure the Minitel as a terminal was quite approximate, for instance it did not support displaying correctly some special characters like accents. Here, I chose a different approach here by writing an ad-hoc Python script to convert input and output, because the Minitel in mixed mode relies on a 7-bit ASCII table with escape sequences for some additional special characters.</p>
+<p>Basically, the principle is to fork into a converter for input and a converter for output to implement a bidirectional terminal converter between the Minitel TTY and another TTY where a user shell is launched.</p>
+<p>Just like my previous setup, the dedicated terminfo file <a class="reference external" href="https://blog.chapelierfou.org/files/mntl.ti">mntl.ti</a> written by Alexandre Montaron is required. It allows setting the <tt class="docutils literal">TERM</tt> environment variable to <tt class="docutils literal"><span class="pre">m1b-x80</span></tt> for model 1B in 80-column mode. It can be installed with <tt class="docutils literal">tic</tt>:</p>
+<pre class="code literal-block">
+$ wget http://canal.chez.com/mntl.ti
+$ tic mntl.ti
+</pre>
+<p>Of course a lot of characters are not available on the Minitel, therefore I had to rely on placeholders, in particular for the majority of accentuated characters.</p>
+<p>The script expects the output from the shell to use the <a class="reference external" href="https://en.wikipedia.org/wiki/ISO/IEC_8859-1">ISO-8859-1</a> charset, but also supports <a class="reference external" href="https://en.wikipedia.org/wiki/ISO/IEC_8859-15">ISO-8859-15</a> , and features some tweaks for <a class="reference external" href="https://en.wikipedia.org/wiki/Windows-1252">Windows-1252</a> (especially the euro sign). The last one is necessary if you want to properly display websites with a text-mode browser like <a class="reference external" href="https://en.wikipedia.org/wiki/Lynx_(web_browser)">Lynx</a>, because some websites made on Windows wrongly declare the encoding as ISO-8859-1 when it is actually the legacy Windows-1252 from Microsoft. Don't try to display UTF-8 with the script as it won't work!</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: iso-8859-1 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Minitel 1B terminal converter</span>
+<span class="sd">Copyright (C) 2016 Paul-Louis Ageneau</span>
+
+<span class="sd">This program is free software: you can redistribute it and/or modify it under</span>
+<span class="sd">the terms of the GNU General Public License as published by the Free Software</span>
+<span class="sd">Foundation, either version 3 of the License, or (at your option) any later</span>
+<span class="sd">version.</span>
+
+<span class="sd">This program is distributed in the hope that it will be useful, but WITHOUT</span>
+<span class="sd">ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS</span>
+<span class="sd">FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</span>
+
+<span class="sd">You should have received a copy of the GNU General Public License along with</span>
+<span class="sd">this program. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">ctypes</span>
+
+<span class="n">port</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;ttyAMA0&#39;</span>
+<span class="n">user</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="k">else</span> <span class="s1">&#39;pi&#39;</span>
+<span class="n">minitel</span> <span class="o">=</span> <span class="s1">&#39;/dev/&#39;</span><span class="o">+</span><span class="n">port</span>
+<span class="n">term</span> <span class="o">=</span> <span class="s1">&#39;m1b-x80&#39;</span>
+<span class="n">lang</span> <span class="o">=</span> <span class="s1">&#39;fr_FR.ISO-8859-1&#39;</span>
+<span class="n">baudrate</span> <span class="o">=</span> <span class="mi">4800</span>
+
+<span class="c1"># Character output conversion table</span>
+<span class="n">conv</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0xC0</span><span class="p">,</span> <span class="mh">0xC6</span><span class="p">):</span>
+    <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;A&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0xC8</span><span class="p">,</span> <span class="mh">0xCC</span><span class="p">):</span>
+    <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;E&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0xCC</span><span class="p">,</span> <span class="mh">0xD0</span><span class="p">):</span>
+    <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;I&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0xD2</span><span class="p">,</span> <span class="mh">0xD7</span><span class="p">):</span>
+    <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;O&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0xD9</span><span class="p">,</span> <span class="mh">0xDD</span><span class="p">):</span>
+    <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;U&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0xE0</span><span class="p">,</span> <span class="mh">0xE6</span><span class="p">):</span>
+    <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;a&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0xE8</span><span class="p">,</span> <span class="mh">0xEC</span><span class="p">):</span>
+    <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;e&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0xEC</span><span class="p">,</span> <span class="mh">0xF0</span><span class="p">):</span>
+    <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;i&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0xF2</span><span class="p">,</span> <span class="mh">0xF7</span><span class="p">):</span>
+    <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;o&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0xF9</span><span class="p">,</span> <span class="mh">0xFD</span><span class="p">):</span>
+    <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;u&#39;</span>
+
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xC6</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;AE&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xC7</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;C&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xD0</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;D&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xD1</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;N&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xD7</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;*&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xD8</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;O&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xDD</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;Y&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xDE</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;TH&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xDF</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;ss&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xE6</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;ae&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xE7</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;c&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xF0</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;d&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xF1</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;n&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xF7</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;/&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xF8</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;o&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xFD</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;y&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xFE</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;th&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xFF</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;y&#39;</span>
+
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xA0</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39; &#39;</span>  <span class="c1"># non-breakable space</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xA2</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;c&#39;</span>  <span class="c1"># cent sign</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xA3</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;L&#39;</span>  <span class="c1"># pound sterling sign</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xA5</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;Y&#39;</span>  <span class="c1"># yen sign</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xAB</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;&quot;&#39;</span>  <span class="c1"># opening guillemet</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xBB</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;&quot;&#39;</span>  <span class="c1"># closing guillemet</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xAC</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;-&#39;</span>  <span class="c1"># negation sign</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xB2</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;^2&#39;</span> <span class="c1"># square sign</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xB3</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;^3&#39;</span> <span class="c1"># cube sign</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xB9</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;^1&#39;</span>
+
+<span class="c1"># Windows-1252 specific</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0x80</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;E&#39;</span>  <span class="c1"># euro sign</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0x8C</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;OE&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0x9C</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;oe&#39;</span>
+
+<span class="c1"># ISO-8859-15 specific</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xA4</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;E&#39;</span>  <span class="c1"># euro sign</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xA6</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;S&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xA8</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;s&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xB4</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;Z&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xB8</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;z&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xBC</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;OE&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xBD</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;oe&#39;</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xBE</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;Y&#39;</span>
+
+<span class="c1"># Special characters</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xE0</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0E\x40\x0F</span><span class="s1">&#39;</span> <span class="c1"># small a grave</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xE8</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0E\x7D\x0F</span><span class="s1">&#39;</span> <span class="c1"># small e grave</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xE9</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0E\x7B\x0F</span><span class="s1">&#39;</span> <span class="c1"># small e acute</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xF9</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0E\x7C\x0F</span><span class="s1">&#39;</span> <span class="c1"># small u grave</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xE7</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0E\x5C\x0F</span><span class="s1">&#39;</span> <span class="c1"># small c cedilla</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xB0</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0E\x5B\x0F</span><span class="s1">&#39;</span> <span class="c1"># degree sign</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xBA</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0E\x5B\x0F</span><span class="s1">&#39;</span> <span class="c1"># ordinal indicator</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xA3</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0E\x23\x0F</span><span class="s1">&#39;</span> <span class="c1"># pound sterling sign</span>
+<span class="n">conv</span><span class="p">[</span><span class="mh">0xA7</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0E\x5D\x0F</span><span class="s1">&#39;</span> <span class="c1"># section sign</span>
+
+<span class="c1"># Special keys (0x13) conversion table</span>
+<span class="n">buttons</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">buttons</span><span class="p">[</span><span class="mh">0x41</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1B</span><span class="s1">OM&#39;</span> <span class="c1"># ENVOI</span>
+<span class="n">buttons</span><span class="p">[</span><span class="mh">0x42</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1B</span><span class="s1">OR&#39;</span> <span class="c1"># RETOUR</span>
+<span class="n">buttons</span><span class="p">[</span><span class="mh">0x43</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1B</span><span class="s1">OS&#39;</span> <span class="c1"># REPETITION</span>
+<span class="n">buttons</span><span class="p">[</span><span class="mh">0x44</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1B</span><span class="s1">Om&#39;</span> <span class="c1"># GUIDE</span>
+<span class="n">buttons</span><span class="p">[</span><span class="mh">0x45</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1B</span><span class="s1">OQ&#39;</span> <span class="c1"># ANNULATION</span>
+<span class="n">buttons</span><span class="p">[</span><span class="mh">0x46</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1B</span><span class="s1">OP&#39;</span> <span class="c1"># SOMMAIRE</span>
+<span class="n">buttons</span><span class="p">[</span><span class="mh">0x47</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1B</span><span class="s1">Ol&#39;</span> <span class="c1"># CORRECTION</span>
+<span class="n">buttons</span><span class="p">[</span><span class="mh">0x48</span><span class="p">]</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1B</span><span class="s1">On&#39;</span> <span class="c1"># SUITE</span>
+
+<span class="c1"># Open a TTY for the user shell</span>
+<span class="n">master</span><span class="p">,</span> <span class="n">slave</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">openpty</span><span class="p">()</span>
+<span class="n">ttyname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">ttyname</span><span class="p">(</span><span class="n">slave</span><span class="p">)</span>
+<span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">ttyname</span><span class="p">,</span> <span class="mo">0o666</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ttyname</span><span class="p">)</span>
+
+<span class="c1"># Configure the TTY to the Minitel</span>
+<span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s1">&#39;stty -F &quot;</span><span class="si">{}</span><span class="s1">&quot; </span><span class="si">{}</span><span class="s1"> istrip cs7 parenb -parodd brkint </span><span class="se">\</span>
+<span class="s1">ignpar icrnl -ixon ixany -opost cread hupcl isig cbreak min 1 </span><span class="se">\</span>
+<span class="s1">-echo echoe echok&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">minitel</span><span class="p">,</span> <span class="n">baudrate</span><span class="p">))</span>
+
+<span class="c1"># Run a shell for the specified user</span>
+<span class="n">libc</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">CDLL</span><span class="p">(</span><span class="s1">&#39;libc.so.6&#39;</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="s1">&#39;bash&#39;</span><span class="p">,</span> <span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="s1">&#39;export TERM=&quot;</span><span class="si">{}</span><span class="s1">&quot;; export LANG=&quot;</span><span class="si">{}</span><span class="s1">&quot;; while true; do clear; cd &quot;</span><span class="si">{}</span><span class="s1">&quot;; runuser -l &quot;</span><span class="si">{}</span><span class="s1">&quot;; sleep 1; done&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">term</span><span class="p">,</span> <span class="n">lang</span><span class="p">,</span> <span class="s1">&#39;/home/&#39;</span><span class="o">+</span><span class="n">user</span><span class="p">,</span> <span class="n">user</span><span class="p">)],</span> <span class="n">stdin</span><span class="o">=</span><span class="n">slave</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">slave</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">slave</span><span class="p">,</span> <span class="n">bufsize</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">preexec_fn</span><span class="o">=</span><span class="n">libc</span><span class="o">.</span><span class="n">setsid</span><span class="p">)</span>
+
+<span class="n">pid</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fork</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">pid</span><span class="p">:</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fdopen</span><span class="p">(</span><span class="n">master</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">minitel</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mh">0x03</span> <span class="ow">or</span> <span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mh">0x18</span><span class="p">:</span> <span class="c1"># divert ctrl-C and ctrl-X and send SIGINT</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">fgid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s1">&#39;ps&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="s1">&#39;-t&#39;</span><span class="p">,</span> <span class="n">ttyname</span><span class="p">,</span> <span class="s1">&#39;-o&#39;</span><span class="p">,</span> <span class="s1">&#39;tpgid&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">encoding</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s1">&#39;kill&#39;</span><span class="p">,</span> <span class="s1">&#39;-INT&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">fgid</span><span class="p">)])</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="k">elif</span> <span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mh">0x13</span><span class="p">:</span> <span class="c1"># Special buttons in mixed mode</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="n">buttons</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">buttons</span><span class="p">[</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)]</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">fdopen</span><span class="p">(</span><span class="n">master</span><span class="p">,</span>  <span class="s1">&#39;rb&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">minitel</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="n">conv</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">conv</span><span class="p">[</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mh">0xA0</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39; &#39;</span> <span class="c1"># placeholder</span>
+        <span class="k">elif</span> <span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mh">0x80</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</pre></div>
+<p>Finally, we need to run both scripts as root sequentially at startup, for instance from <tt class="docutils literal">/etc/rc.local</tt>:</p>
+<div class="highlight"><pre><span></span>/root/init.py<span class="w"> </span>ttyAMA0<span class="w">       </span><span class="c1"># Minitel initialization</span>
+/root/tty.py<span class="w"> </span>ttyAMA0<span class="w"> </span>pi<span class="w"> </span><span class="p">&amp;</span><span class="w">   </span><span class="c1"># Minitel terminal converter</span>
+<span class="nb">exit</span><span class="w"> </span><span class="m">0</span>
+</pre></div>
+<p>Then when we turn on the Minitel, after a few seconds... we get a prompt!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190722_235044.jpg"><img alt="A wild prompt appears!" src="https://blog.chapelierfou.org/images/IMG_20190722_235044-small.jpg" style="width: 480px;" /></a>
+<p class="caption">A wild prompt appears! It's even funnier if the user is 3615 ;)</p>
+</div>
+<p>Let's surf the Web with <a class="reference external" href="https://en.wikipedia.org/wiki/Lynx_(web_browser)">Lynx</a>. Guaranteed without ads or JavaScript bloat.</p>
+<p>Hurray for the Minitel 2.0!</p>
+<p>Now, what about going deeper down the rabbit hole and replacing the screen with a modern LCD one? See <a class="reference external" href="https://blog.chapelierfou.org/a-high-tech-minitel.html">my High-Tech Minitel article</a>!</p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

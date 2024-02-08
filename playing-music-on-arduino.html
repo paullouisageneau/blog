@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Robotics">
+    <meta property="article:published_time" content="2017-04-20">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >Playing music on Arduino</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">20/04/2017</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/music.html">Music</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>Provided you connect a <a class="reference external" href="https://en.wikipedia.org/wiki/Piezoelectric_speaker">piezo
+speaker</a> to your
+<a class="reference external" href="https://www.arduino.cc/">Arduino</a> board, the <tt class="docutils literal">tone</tt> Arduino
+function allows to play tones given their frequencies. Let's use it to
+play entire melodies!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20170420_143033.jpg"><img alt="The Arduino board of my robotic teapot with a piezo sounder" src="https://blog.chapelierfou.org/images/IMG_20170420_143033-small.jpg" /></a>
+<p class="caption">The Arduino board of <a class="reference external" href="https://blog.chapelierfou.org/plasteac-a-dancing-teapot.html">my robotic teapot</a> with a piezo sounder</p>
+</div>
+<p>The melody encoding format I'll use is compact and pretty
+straightforward, but I admit it isn't the easiest one to read. The
+melody is represented as a <a class="reference external" href="https://en.wikipedia.org/wiki/Null-terminated_string">null-terminated
+string</a> of
+chars, in which each note is described by 3 consecutive characters:</p>
+<ol class="arabic simple">
+<li>The note duration in sixteenth notes as an hexadecimal digit between
+0 and F (0 has a special meaning and is interpreted as a whole note)</li>
+<li>The note name in English notation as an uppercase letter, or
+lowercase if sharp (R has a special meaning and indicates a rest)</li>
+<li>The octave number as a decimal digit, between 0 and 8 (for a rest,
+the value is ignored)</li>
+</ol>
+<p>So for instance, a quarter-note C from the 5th octave is <tt class="docutils literal">4C5</tt>, and a
+eighth-note D sharp from the 4th octave is <tt class="docutils literal">2d4</tt>.</p>
+<p>With this notation, the <a class="reference external" href="https://en.wikipedia.org/wiki/Korobeiniki">Tetris
+theme</a> is:</p>
+<pre class="code literal-block">
+4E52B42C54D52C52B44A42A42C54E52D52C56B42C54D54E54C54A42A42A42B42C56D52F54A52G52F56E52C54E52D52C54B42B42C54D54E54C54A44A44R0
+</pre>
+<p>In this example, a <a class="reference external" href="https://www.adafruit.com/product/160">piezo passive
+sounder</a> is connected on pin 3
+of the Arduino board. The code to play a melody stored in the format
+defined previously can be written as follows:</p>
+<div class="highlight"><pre><span></span><span class="c1">// Melody player implementation</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Player</span>
+<span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="c1">// Create the player for specified speaker pin</span>
+<span class="w">  </span><span class="n">Player</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">speakerPin</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">speakerPin</span><span class="p">;</span>
+<span class="w">    </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="w">    </span><span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="w">    </span><span class="n">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Start playing melody</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">play</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">melody</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">looped</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">melody</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">looped</span><span class="p">)</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">melody</span><span class="p">;</span>
+<span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="w">    </span><span class="n">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Stop melody</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">stop</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="w">    </span><span class="n">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Update melody, must be called on each quarter of a beat</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">sync</span><span class="p">(</span><span class="kt">long</span><span class="w"> </span><span class="n">bpm</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Check if no melody is set</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">current</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Check if a note is playing</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">left</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">left</span><span class="o">--</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="p">(</span><span class="n">left</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Check for end of the melody string</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">current</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">current</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">current</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">current</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="n">current</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Read note in the melody string</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="p">)</span><span class="n">current</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">d</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mh">0x41</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mh">0x41</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mh">0x30</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">octave</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="p">)</span><span class="n">current</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mh">0x30</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">note</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+
+<span class="w">    </span><span class="c1">// 0 is interpreted as a whole note, or semibreve</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">duration</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">16</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Update status</span>
+<span class="w">    </span><span class="n">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">duration</span><span class="p">;</span>
+<span class="w">    </span><span class="n">current</span><span class="o">+=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Play note</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pitch</span><span class="p">(</span><span class="n">octave</span><span class="p">,</span><span class="w"> </span><span class="n">note</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">frequency</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">unit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">60000L</span><span class="o">/</span><span class="p">(</span><span class="n">bpm</span><span class="o">*</span><span class="mi">4</span><span class="p">);</span>
+<span class="w">      </span><span class="n">noTone</span><span class="p">(</span><span class="n">pin</span><span class="p">);</span>
+<span class="w">      </span><span class="n">tone</span><span class="p">(</span><span class="n">pin</span><span class="p">,</span><span class="w"> </span><span class="n">frequency</span><span class="p">,</span><span class="w"> </span><span class="n">unit</span><span class="o">*</span><span class="n">duration</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">unit</span><span class="o">/</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">pin</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">current</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">next</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">left</span><span class="p">;</span><span class="w">  </span><span class="c1">// sync calls left for current note</span>
+<span class="p">};</span>
+</pre></div>
+<p>After setting the melody, the function <tt class="docutils literal">syncMelody()</tt> must be called
+on each quarter of a beat to play it at the chosen tempo. It does not
+wait by itself to allow some other processing between calls.</p>
+<p>The helper function <tt class="docutils literal">pitch(unsigned int octave, unsigned char note)</tt>
+returns the frequency given an octave number and a note name. Lowercase
+note name is interpreted as sharp, and 0 is returned on a rest or on
+error. Note A from the 4th octave returns <a class="reference external" href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">440
+Hz</a>.</p>
+<div class="highlight"><pre><span></span><span class="c1">// Return frequency given octave number and note name</span>
+<span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">pitch</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">octave</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">note</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="c1">// Note names array</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">countNotes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">12</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">Notes</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="sc">&#39;C&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;c&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;D&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;d&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;E&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;F&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;f&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;G&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;g&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;A&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;a&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;B&#39;</span><span class="w"> </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Frequencies array</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">countFreqs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">countNotes</span><span class="o">*</span><span class="mi">7</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">Freqs</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span>
+<span class="w">    </span><span class="p">{</span><span class="w">   </span><span class="mi">33</span><span class="p">,</span><span class="w">   </span><span class="mi">35</span><span class="p">,</span><span class="w">   </span><span class="mi">37</span><span class="p">,</span><span class="w">   </span><span class="mi">39</span><span class="p">,</span><span class="w">   </span><span class="mi">41</span><span class="p">,</span><span class="w">   </span><span class="mi">44</span><span class="p">,</span><span class="w">   </span><span class="mi">46</span><span class="p">,</span><span class="w">   </span><span class="mi">49</span><span class="p">,</span><span class="w">   </span><span class="mi">52</span><span class="p">,</span><span class="w">   </span><span class="mi">55</span><span class="p">,</span><span class="w">   </span><span class="mi">58</span><span class="p">,</span><span class="w">   </span><span class="mi">62</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">65</span><span class="p">,</span><span class="w">   </span><span class="mi">69</span><span class="p">,</span><span class="w">   </span><span class="mi">73</span><span class="p">,</span><span class="w">   </span><span class="mi">78</span><span class="p">,</span><span class="w">   </span><span class="mi">82</span><span class="p">,</span><span class="w">   </span><span class="mi">87</span><span class="p">,</span><span class="w">   </span><span class="mi">93</span><span class="p">,</span><span class="w">   </span><span class="mi">98</span><span class="p">,</span><span class="w">  </span><span class="mi">104</span><span class="p">,</span><span class="w">  </span><span class="mi">110</span><span class="p">,</span><span class="w">  </span><span class="mi">117</span><span class="p">,</span><span class="w">  </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">       </span><span class="mi">131</span><span class="p">,</span><span class="w">  </span><span class="mi">139</span><span class="p">,</span><span class="w">  </span><span class="mi">147</span><span class="p">,</span><span class="w">  </span><span class="mi">156</span><span class="p">,</span><span class="w">  </span><span class="mi">165</span><span class="p">,</span><span class="w">  </span><span class="mi">175</span><span class="p">,</span><span class="w">  </span><span class="mi">185</span><span class="p">,</span><span class="w">  </span><span class="mi">196</span><span class="p">,</span><span class="w">  </span><span class="mi">208</span><span class="p">,</span><span class="w">  </span><span class="mi">220</span><span class="p">,</span><span class="w">  </span><span class="mi">233</span><span class="p">,</span><span class="w">  </span><span class="mi">247</span><span class="p">,</span>
+<span class="w">       </span><span class="mi">262</span><span class="p">,</span><span class="w">  </span><span class="mi">277</span><span class="p">,</span><span class="w">  </span><span class="mi">294</span><span class="p">,</span><span class="w">  </span><span class="mi">311</span><span class="p">,</span><span class="w">  </span><span class="mi">330</span><span class="p">,</span><span class="w">  </span><span class="mi">349</span><span class="p">,</span><span class="w">  </span><span class="mi">370</span><span class="p">,</span><span class="w">  </span><span class="mi">392</span><span class="p">,</span><span class="w">  </span><span class="mi">415</span><span class="p">,</span><span class="w">  </span><span class="mi">440</span><span class="p">,</span><span class="w">  </span><span class="mi">466</span><span class="p">,</span><span class="w">  </span><span class="mi">494</span><span class="p">,</span>
+<span class="w">       </span><span class="mi">523</span><span class="p">,</span><span class="w">  </span><span class="mi">554</span><span class="p">,</span><span class="w">  </span><span class="mi">587</span><span class="p">,</span><span class="w">  </span><span class="mi">622</span><span class="p">,</span><span class="w">  </span><span class="mi">659</span><span class="p">,</span><span class="w">  </span><span class="mi">698</span><span class="p">,</span><span class="w">  </span><span class="mi">740</span><span class="p">,</span><span class="w">  </span><span class="mi">784</span><span class="p">,</span><span class="w">  </span><span class="mi">831</span><span class="p">,</span><span class="w">  </span><span class="mi">880</span><span class="p">,</span><span class="w">  </span><span class="mi">932</span><span class="p">,</span><span class="w">  </span><span class="mi">988</span><span class="p">,</span>
+<span class="w">      </span><span class="mi">1047</span><span class="p">,</span><span class="w"> </span><span class="mi">1109</span><span class="p">,</span><span class="w"> </span><span class="mi">1175</span><span class="p">,</span><span class="w"> </span><span class="mi">1245</span><span class="p">,</span><span class="w"> </span><span class="mi">1319</span><span class="p">,</span><span class="w"> </span><span class="mi">1397</span><span class="p">,</span><span class="w"> </span><span class="mi">1480</span><span class="p">,</span><span class="w"> </span><span class="mi">1568</span><span class="p">,</span><span class="w"> </span><span class="mi">1661</span><span class="p">,</span><span class="w"> </span><span class="mi">1760</span><span class="p">,</span><span class="w"> </span><span class="mi">1865</span><span class="p">,</span><span class="w"> </span><span class="mi">1976</span><span class="p">,</span>
+<span class="w">      </span><span class="mi">2093</span><span class="p">,</span><span class="w"> </span><span class="mi">2217</span><span class="p">,</span><span class="w"> </span><span class="mi">2349</span><span class="p">,</span><span class="w"> </span><span class="mi">2489</span><span class="p">,</span><span class="w"> </span><span class="mi">2637</span><span class="p">,</span><span class="w"> </span><span class="mi">2794</span><span class="p">,</span><span class="w"> </span><span class="mi">2960</span><span class="p">,</span><span class="w"> </span><span class="mi">3136</span><span class="p">,</span><span class="w"> </span><span class="mi">3322</span><span class="p">,</span><span class="w"> </span><span class="mi">3520</span><span class="p">,</span><span class="w"> </span><span class="mi">3729</span><span class="p">,</span><span class="w"> </span><span class="mi">3951</span><span class="p">,</span>
+<span class="w">      </span><span class="mi">4186</span><span class="p">,</span><span class="w"> </span><span class="mi">4435</span><span class="p">,</span><span class="w"> </span><span class="mi">4699</span><span class="p">,</span><span class="w"> </span><span class="mi">4978</span><span class="w"> </span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// Rest</span>
+<span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="n">note</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;R&#39;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">note</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;r&#39;</span><span class="p">)</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Find note index</span>
+<span class="w">  </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">while</span><span class="p">(</span><span class="n">Notes</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">note</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="o">++</span><span class="n">n</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">countNotes</span><span class="p">)</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Frenquency index</span>
+<span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="n">octave</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">countNotes</span><span class="o">*</span><span class="p">(</span><span class="n">octave</span><span class="mi">-1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="n">p</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">countFreqs</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">Freqs</span><span class="p">[</span><span class="n">p</span><span class="p">];</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+<p>For instance, here is a simple example playing the Tetris theme!</p>
+<div class="highlight"><pre><span></span><span class="c1">// Tetris melody</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">melody</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;4E52B42C54D52C52B44A42A42C54E52D52C56B42C54D54E54C54A42A42A42B42C56D52F54A52G52F56E52C54E52D52C54B42B42C54D54E54C54A44A44R0&quot;</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">speakerPin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w">  </span><span class="c1">// speaker on pin 3</span>
+
+<span class="n">Player</span><span class="w"> </span><span class="nf">player</span><span class="p">(</span><span class="n">speakerPin</span><span class="p">);</span>
+<span class="kt">long</span><span class="w"> </span><span class="n">bpm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">120L</span><span class="p">;</span>
+
+<span class="n">setup</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="n">player</span><span class="p">.</span><span class="n">play</span><span class="p">(</span><span class="n">melody</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="n">loop</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="n">player</span><span class="p">.</span><span class="n">sync</span><span class="p">(</span><span class="n">bpm</span><span class="p">);</span>
+<span class="w">  </span><span class="n">delay</span><span class="p">(</span><span class="mf">60000L</span><span class="o">/</span><span class="p">(</span><span class="n">bpm</span><span class="o">*</span><span class="mi">4</span><span class="p">));</span><span class="w">    </span><span class="c1">// a quarter of a beat</span>
+<span class="p">}</span>
+</pre></div>
+<p>I can now upgrade my <a class="reference external" href="https://blog.chapelierfou.org/plasteac-a-dancing-teapot.html">dancing
+teapot</a>
+to have it play a melody while dancing!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20170420_142711.jpg"><img alt="The Arduino board of the robotic teapot with a piezo sounder" src="https://blog.chapelierfou.org/images/IMG_20170420_142711-small.jpg" /></a>
+<p class="caption">The Arduino board of the robotic teapot with a piezo sounder</p>
+</div>
+<p>After adding the piezo speaker and including the previous code, I simply
+modified the main functions as follows:</p>
+<div class="highlight"><pre><span></span><span class="p">[...]</span>
+<span class="n">Player</span><span class="w"> </span><span class="n">player</span><span class="p">(</span><span class="n">speakerPin</span><span class="p">);</span>
+<span class="kt">long</span><span class="w"> </span><span class="n">bpm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">120L</span><span class="p">;</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">sync</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="c1">// Given set BPM, delay until the next quarter of a beat</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">lastMillis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">60000L</span><span class="o">/</span><span class="p">(</span><span class="n">bpm</span><span class="o">*</span><span class="mi">4</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">long</span><span class="w"> </span><span class="n">leftMillis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lastMillis</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">duration</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">millis</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="n">leftMillis</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="n">delay</span><span class="p">(</span><span class="n">leftMillis</span><span class="p">);</span>
+<span class="w">  </span><span class="n">lastMillis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">millis</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// Update player</span>
+<span class="w">  </span><span class="n">player</span><span class="p">.</span><span class="n">sync</span><span class="p">(</span><span class="n">bpm</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">nsync</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">count</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="c1">// Call count times sync</span>
+<span class="w">  </span><span class="k">while</span><span class="p">(</span><span class="n">count</span><span class="o">--</span><span class="p">)</span>
+<span class="w">    </span><span class="n">sync</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="c1">// Set current melody</span>
+<span class="w">  </span><span class="n">player</span><span class="p">.</span><span class="n">play</span><span class="p">(</span><span class="n">melody</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Now do some choregraphy on the melody</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">cycles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">32</span><span class="p">;</span>
+<span class="w">  </span><span class="k">while</span><span class="p">(</span><span class="n">cycles</span><span class="o">--</span><span class="p">)</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">left</span><span class="p">(</span><span class="mi">-20</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">right</span><span class="p">(</span><span class="mi">-20</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">nsync</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span><span class="w">      </span><span class="c1">// 1 beat</span>
+<span class="w">    </span><span class="n">left</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">right</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">nsync</span><span class="p">(</span><span class="mi">4</span><span class="p">);</span><span class="w">      </span><span class="c1">// 1 beat</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>As a result, the teapot now dances and sings!</p>
+<p>You can find the upgraded source code under
+<a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a> on <a class="reference external" href="https://github.com/paullouisageneau/plasteac/tree/master/Arduino/plasteac">my
+repository on
+GitHub</a>.</p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

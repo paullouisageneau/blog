@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Networks">
+    <meta property="article:published_time" content="2022-02-09">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >Enumerating Raspberry Pis</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">09/02/2022</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/networks.html">Networks</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>After installing a freshly-copied microSD card in a headless Raspberry Pi, there is sometimes an awkward moment.
+The Raspberry Pi boots in its default configuration and obtains an address from DHCP, then you need to SSH into it.
+However, even if in general the Raspberry Pi can be found with its domain name (<tt class="docutils literal">raspberrypi</tt> by default) using a local DNS server or mDNS, it can also become a pain sometimes, for instance when you configure multiple Raspberry Pis at the same time.</p>
+<p>In situations where <tt class="docutils literal">ssh pi&#64;raspberrypi.local</tt> does not work, you need to scan the local network to find the Raspberry Pis, which can be achieved with <a class="reference external" href="https://nmap.org/">nmap</a>. Raspberry Pi devices can be recognized because their MAC addresses are issued by the organization &quot;Raspberry Pi Trading&quot;.</p>
+<p>This allows to automate the discovery process by enumerating interfaces with <tt class="docutils literal">ip</tt> then enumerating the Raspberry Pis on each interface with <tt class="docutils literal">nmap</tt>:</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Looking for Raspberry Pis...&quot;</span>
+<span class="nv">IFACES</span><span class="o">=</span><span class="k">$(</span>ip<span class="w"> </span>-4<span class="w"> </span>-o<span class="w"> </span>addr<span class="w"> </span>show<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;/docker0/ {found=1; next} /scope global/ {print $4}&#39;</span><span class="k">)</span>
+<span class="nv">RPI_ADDRS</span><span class="o">=()</span>
+<span class="k">for</span><span class="w"> </span>IFACE<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$IFACES</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Scanning on interface </span><span class="nv">$IFACE</span><span class="s2">...&quot;</span>
+<span class="w">    </span><span class="nv">ADDRS</span><span class="o">=</span><span class="k">$(</span>sudo<span class="w"> </span>nmap<span class="w"> </span>-n<span class="w"> </span>-sP<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$IFACE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">&#39;Raspberry Pi Trading&#39;</span><span class="w"> </span>-B2<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span>-F<span class="w"> </span><span class="s1">&#39; &#39;</span><span class="w"> </span><span class="s1">&#39;/report for/ {print $5}&#39;</span><span class="k">)</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span>ADDR<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$ADDRS</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Found address: </span><span class="nv">$ADDR</span><span class="s2">&quot;</span>
+<span class="w">        </span><span class="nv">RPI_ADDRS</span><span class="o">+=(</span><span class="nv">$ADDR</span><span class="o">)</span>
+<span class="w">    </span><span class="k">done</span>
+<span class="k">done</span>
+</pre></div>
+<p>Note the <tt class="docutils literal"><span class="pre">-n</span></tt> flag to disable DNS resolution and <tt class="docutils literal"><span class="pre">-sP</span></tt> flag to disable port scanning. Also, we skip the potential <tt class="docutils literal">docker0</tt> interface since it's clearly useless to scan it.</p>
+<p>We can now adapt the script to enumerate only unconfigured Raspberry Pis by trying to connect them via SSH using the default password (Don't forget to enable the SSH server by writing a file named <tt class="docutils literal">ssh</tt> to the boot partition):</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+
+<span class="nv">DEFAULT_PASS</span><span class="o">=</span><span class="s1">&#39;raspberry&#39;</span>
+<span class="nv">SSH_OPTIONS</span><span class="o">=</span><span class="s2">&quot;-q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no&quot;</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Looking for unconfigured Raspberry Pis...&quot;</span>
+<span class="nv">IFACES</span><span class="o">=</span><span class="k">$(</span>ip<span class="w"> </span>-4<span class="w"> </span>-o<span class="w"> </span>addr<span class="w"> </span>show<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;/docker0/ {found=1; next} /scope global/ {print $4}&#39;</span><span class="k">)</span>
+<span class="nv">UNCONFIGURED_RPI_ADDRS</span><span class="o">=()</span>
+<span class="k">for</span><span class="w"> </span>IFACE<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$IFACES</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Scanning on interface </span><span class="nv">$IFACE</span><span class="s2">...&quot;</span>
+<span class="w">    </span><span class="nv">ADDRS</span><span class="o">=</span><span class="k">$(</span>sudo<span class="w"> </span>nmap<span class="w"> </span>-n<span class="w"> </span>-sP<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$IFACE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">&#39;Raspberry Pi Trading&#39;</span><span class="w"> </span>-B2<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span>-F<span class="w"> </span><span class="s1">&#39; &#39;</span><span class="w"> </span><span class="s1">&#39;/report for/ {print $5}&#39;</span><span class="k">)</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span>ADDR<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nv">$ADDRS</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Trying candidate address </span><span class="nv">$ADDR</span><span class="s2">...&quot;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span>sshpass<span class="w"> </span>-p<span class="w"> </span><span class="nv">$DEFAULT_PASS</span><span class="w"> </span>ssh<span class="w"> </span><span class="nv">$SSH_OPTIONS</span><span class="w"> </span>pi@<span class="nv">$ADDR</span><span class="w"> </span>hostname<span class="w"> </span><span class="p">&amp;</span>&gt;/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">            </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Found address: </span><span class="nv">$ADDR</span><span class="s2">&quot;</span>
+<span class="w">            </span><span class="nv">UNCONFIGURED_RPI_ADDRS</span><span class="o">+=(</span><span class="nv">$ADDR</span><span class="o">)</span>
+<span class="w">        </span><span class="k">fi</span>
+<span class="w">    </span><span class="k">done</span>
+<span class="k">done</span>
+</pre></div>
+<p>The custom SSH options allow to make it silent and fully bypass host key checking.</p>
+<p>You can now run any operation on the list of hosts to easily apply it on a batch of fresh Raspberry Pis:</p>
+<div class="highlight"><pre><span></span><span class="k">for</span><span class="w"> </span>ADDR<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">UNCONFIGURED_RPI_ADDRS</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span>sshpass<span class="w"> </span>-p<span class="w"> </span><span class="nv">$DEFAULT_PASS</span><span class="w"> </span>ssh<span class="w"> </span><span class="nv">$SSH_OPTIONS</span><span class="w"> </span>pi@<span class="nv">$ADDR</span><span class="w"> </span>foo
+<span class="k">done</span>
+</pre></div>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

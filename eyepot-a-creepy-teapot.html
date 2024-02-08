@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Robotics">
+    <meta property="article:published_time" content="2018-03-17">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >Eyepot: a creepy teapot</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">17/03/2018</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>What has four legs but only one eye? A teapot of course!</p>
+<p>My new robot is based on a <a class="reference external" href="https://www.raspberrypi.org/products/raspberry-pi-zero-w/">Raspberry Pi Zero W</a> with a camera. It is connected via a serial link to an <a class="reference external" href="https://store.arduino.cc/usa/arduino-pro-mini">Arduino Pro Mini</a> board, which drives servos. Since each one of the four legs will have two articulations, each with one servo, we need eight servos in total.</p>
+<p>Here is a list of the material we will use:</p>
+<ul class="simple">
+<li>a <a class="reference external" href="https://www.raspberrypi.org/products/raspberry-pi-zero-w/">Raspberry Pi Zero W</a></li>
+<li>a <a class="reference external" href="https://www.raspberrypi.org/products/camera-module-v2/">Raspberry Pi camera module V2</a></li>
+<li>a <a class="reference external" href="https://thepihut.com/products/raspberry-pi-zero-camera-adapter">camera adapter</a> for the Raspberry Pi Zero</li>
+<li>an <a class="reference external" href="https://www.sparkfun.com/products/11114">Arduino Pro Mini 3.3V/8MHz</a></li>
+<li>8 micro servos 9g rated ~5V (<a class="reference external" href="https://www.ebay.com/sch/Tower%20Pro%20SG90">Tower Pro SG90</a> or similar)</li>
+<li>a <a class="reference external" href="https://www.ebay.com/sch/UBEC%205V%203A">5V switching regulator</a> rated at least 3A</li>
+<li>a <a class="reference external" href="https://www.ebay.com/sch/2S%20LiPo%20battery">2S LiPo battery</a>, 1000mAh is good</li>
+<li>a <a class="reference external" href="https://www.amazon.com/s/ref=nb_sb_noss?url=search-alias%3Dcomputers&amp;field-keywords=micro+sd+card">MicroSD card</a> for the Raspberry Pi, 16GB is good</li>
+<li>a <a class="reference external" href="http://www.ebay.com/sch/CP2102">USB to UART bridge</a> to program the Arduino board</li>
+<li>Dupont wires, screws, pins, prototype board, soldering material, and glue</li>
+</ul>
+<p>Let's start by designing and printing the parts. I use OpenSCAD, and print with white PLA, as usual.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/eyepot_models.png"><img alt="View of the 3D models set" src="https://blog.chapelierfou.org/images/eyepot_models.png" /></a>
+<p class="caption">View of the 3D models set</p>
+</div>
+<p>You can download the SCAD source files (licensed under <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a>) and the corresponding STL files <a class="reference external" href="https://blog.chapelierfou.org/files/eyepot_models.zip">here</a> or on <a class="reference external" href="https://github.com/paullouisageneau/eyepot/tree/master/models">my GitHub repository</a>. The models are also available on <a class="reference external" href="https://www.thingiverse.com/thing:2830304">Thingiverse</a>.</p>
+<p>If you have played the videogame <a class="reference external" href="https://en.wikipedia.org/wiki/Alice:_Madness_Returns">Alice: Madness Returns</a>, you might have recognized one of the ennemies as source of inspiration. The shape and the number of legs are different, but still, it's basically a teapot with a single eye on legs! You might also have recognized the famous <a class="reference external" href="https://en.wikipedia.org/wiki/Utah_teapot">Utah teapot</a>, that I already used for my <a class="reference external" href="https://blog.chapelierfou.org/plasteac-a-dancing-teapot.html">dancing teapot</a>.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/alice-madness-returns-eyepot-screenshot.jpg"><img alt="Screenshot from the videogame Alice: Madness Returns showing the Eyepot" src="https://blog.chapelierfou.org/images/alice-madness-returns-eyepot-screenshot-small.jpg" /></a>
+<p class="caption">Screenshot from <a class="reference external" href="https://en.wikipedia.org/wiki/Alice:_Madness_Returns">Alice: Madness Returns</a> showing the Eyepot</p>
+</div>
+<p>Once everything is printed, let's assemble the robot! The legs have two articulations each: the knee rotates horizontally and the ankle rotates vertically.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20171003_201406.jpg"><img alt="A leg with the knee servo mounted" src="https://blog.chapelierfou.org/images/IMG_20171003_201406-small.jpg" /></a>
+<p class="caption">A leg with the knee servo mounted</p>
+</div>
+<p>The platform hosts the four ankle servos. The compartment in the center will host the distribution board connecting the eight servos. A nice tip when dealing with servos: don't screw the arms at first, wait for them to be connected, so you can first drive them to neutral position, then tighten the screws.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20171003_201831.jpg"><img alt="The platform with the four ankle servos mounted and a leg attached" src="https://blog.chapelierfou.org/images/IMG_20171003_201831-small.jpg" /></a>
+<p class="caption">The platform with the four ankle servos mounted and a leg attached</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20171003_202535.jpg"><img alt="The platform with the four legs attached" src="https://blog.chapelierfou.org/images/IMG_20171003_202535-small.jpg" /></a>
+<p class="caption">The platform with the four legs attached</p>
+</div>
+<p>With a piece of prototype board sawn to the correct dimensions and pins, I made a distribution board to connect the eight servos. The pins are welded together on the back of the board, so each servo is connected to the power line, the ground line and an indivial control wire. Ten wires go out to the head: one for the power, one for the ground, and the eight control wires that allow to drive each servo.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20171003_203836.jpg"><img alt="The servos connected to the distribution board" src="https://blog.chapelierfou.org/images/IMG_20171003_203836-small.jpg" /></a>
+<p class="caption">The servos connected to the distribution board</p>
+</div>
+<p>The power, ground and control wires go through the neck of the robot to be connected in the teapot-shaped head.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20171003_211739.jpg"><img alt="Power, ground and controls wires for servos going out on the top" src="https://blog.chapelierfou.org/images/IMG_20171003_211739-small.jpg" /></a>
+<p class="caption">Power, ground and controls wires for servos going out on the top</p>
+</div>
+<p>The neck cannot move and is simply glued to the platform on the bottom and to the teapot base on the top. Its central hole allows the wires to go through to the head.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20171003_212208.jpg"><img alt="The neck is glued to the platform with wires going through" src="https://blog.chapelierfou.org/images/IMG_20171003_212208-small.jpg" /></a>
+<p class="caption">The neck is glued to the platform with wires going through</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20171003_212643.jpg"><img alt="The base of the head is glued on the neck with wires going through" src="https://blog.chapelierfou.org/images/IMG_20171003_212643-small.jpg" /></a>
+<p class="caption">The base of the head is glued on the neck with wires going through</p>
+</div>
+<p>We can now connect the servos wires. For power and ground, I made a small distribution board to connect the dupont wires cleanly. The 2S LiPo battery 7.4V tension (actually from 8.4V at full charge to 7V) is regulated to 5V with a switching regulator (aka UBEC). Since I chose to have the servos powered by the regulated 5V tension, we need to dimension the UBEC correctly: each 9g servo draws roughly 250mA when rotating (even potentially up to 600mA when stalling), the Pi Zero W draws up to 250mA with video capture and Wifi enabled, while the Arduino Pro Mini draws only around 5mA. Therefore, 3A is a minimun rating here.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/schema_eyepot.png"><img alt="Schematic of the connections between components" src="https://blog.chapelierfou.org/images/schema_eyepot.png" /></a>
+<p class="caption">Schematic of the connections between components</p>
+</div>
+<p>There is a bit of subtlety when connecting the Arduino Pro Mini: since it is the 3.3V version, we connect the 5V input to RAW. If it was 5V, we would connect directly the 5V input to VCC, because else you would get less than 5V in the board due to dropout in the regulator.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20171003_213210.jpg"><img alt="Arduino Pro Mini board and battery connected to servos" src="https://blog.chapelierfou.org/images/IMG_20171003_213210-small.jpg" /></a>
+<p class="caption">Arduino Pro Mini board and battery connected to servos</p>
+</div>
+<p>Now is a good time to set the servos to the mean angle (90 degrees) from a dummy Arduino program, and then tighten the screws with the arms in middle position. After we checked everything is working properly with the servos, we can clip the bottom cover.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20171003_214936.jpg"><img alt="Bottom view with cover closed" src="https://blog.chapelierfou.org/images/IMG_20171003_214936-small.jpg" /></a>
+<p class="caption">Bottom view with cover closed</p>
+</div>
+<p>The camera support is glued inside the teapot-shaped top part of the head. It allow to secure the Raspberry Pi camera in the eye with a pair of screws.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20180304_181758.jpg"><img alt="The camera positionned inside the top of the head" src="https://blog.chapelierfou.org/images/IMG_20180304_181758-small.jpg" /></a>
+<p class="caption">The camera positionned inside the top of the head</p>
+</div>
+<p>The Raspberry Pi Zero W is screwed on the base of the head. The servos wires have space to fit below the board.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20180304_182438.jpg"><img alt="Everything is connected, the top of the head is ready to be mounted" src="https://blog.chapelierfou.org/images/IMG_20180304_182438-small.jpg" /></a>
+<p class="caption">Everything is connected, the top of the head is ready to be mounted</p>
+</div>
+<p>Finally, we clip the teapot-shaped to of the head, without forgetting to connect the camera first, and close the teapot with its cover.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20180304_183310.jpg"><img alt="The finished Eyepot robot" src="https://blog.chapelierfou.org/images/IMG_20180304_183310-small.jpg" /></a>
+<p class="caption">The finished Eyepot robot</p>
+</div>
+<p>Of course, the next step is to program the robot. We'll do it in <a class="reference external" href="https://blog.chapelierfou.org/eyepot-programming.html">my next article</a>!</p>
+<div class="figure">
+<img alt="The finished Eyepot moving" src="https://blog.chapelierfou.org/images/eyepot_loop.gif" style="width: 480px;" />
+<p class="caption">It's alive!</p>
+</div>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

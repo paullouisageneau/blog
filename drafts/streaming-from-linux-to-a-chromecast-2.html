@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Networks">
+    <meta property="article:published_time" content="2020-01-26">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >Streaming from Linux to a Chromecast 2</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">26/01/2020</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/networks.html">Networks</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/networking.html">Networking</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/video.html">Video</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>I previously wrote <cite>an article &lt;{file}/content/streaming-from-linux-to-a-chromecast-2 about streaming</cite>.</p>
+<p>The <a class="reference external" href="https://en.wikipedia.org/wiki/Chromecast">Google Chromecast</a> is
+an impressive little device. If you haven't encountered one already,
+it's a small HDMI dongle which, when connected to a TV screen, allows to
+play audio, video, or visual content of a compatible webapp from a
+computer or mobile device.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/google_chromecast.jpg"><img alt="Google Chromecast" src="https://blog.chapelierfou.org/images/google_chromecast.jpg" style="width: 50%;" /></a>
+</div>
+<p>However, it is primarily designed to only stream content from the Web,
+and not from your computer itself, which follows the current trend that
+everything should be &quot;in the cloud&quot; and is infuriatingly limiting. As
+you can guess, that dubious ideology is not my cup of tea.</p>
+<p>Luckily, the excellent library
+<a class="reference external" href="https://github.com/balloob/pychromecast">PyChromecast</a> allows to
+control the device from a Python program. Yet the issue is that it only
+works for codecs the Chromecast is able to decode natively, <em>i.e.</em>,
+H.264 and VP8. Besides, the Chromecast is only able to handle a few
+containers like MP4 and WebM. What if you want to stream other video
+formats ? Besides, what if you want to stream dynamically-generated
+content, for instance your screen or a live video from a camera ?</p>
+<p>Introducing <a class="reference external" href="https://ffmpeg.org/">ffmpeg</a>!</p>
+<div class="highlight"><pre><span></span>ffmpeg<span class="w"> </span>-i<span class="w"> </span>test.avi<span class="w"> </span>-c:v<span class="w"> </span>libvpx<span class="w"> </span>-c:a<span class="w"> </span>libvorbis<span class="w"> </span>-f<span class="w"> </span>webm<span class="w"> </span>out.webm
+</pre></div>
+<p>In this example, <tt class="docutils literal">ffmpeg</tt> reads <tt class="docutils literal">test.avi</tt>, recodes the video stream
+as VP8 and the audio stream as Vorbis, encapsulates the streams in WebM
+format and outputs in <tt class="docutils literal">out.webm</tt>.</p>
+<p>We can enhance this command for streaming to the Chromecast. In
+particular, <tt class="docutils literal">ffmpeg</tt> allows video filters with <tt class="docutils literal"><span class="pre">-vf</span></tt>, and also
+various parameters to tune the VP8 codec. Here, we want constant-bitrate
+realtime encoding with a bound on 50% CPU (0 is 100% and 15 is minimum
+here). Here, the target bitrate is set to 4Mbps so it fits a crappy Wifi
+link, but you could set it higher, to 8Mbps for instance.</p>
+<div class="highlight"><pre><span></span>ffmpeg<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-ss<span class="w"> </span><span class="m">00</span>:00:00<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-i<span class="w"> </span>test.avi<span class="w"> </span>-copyts<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-vf<span class="w"> </span><span class="s2">&quot;scale=-1:min(ih*1920/iw\,1080),pad=1920:1080:(1920-iw)/2:(1080-ih)/2:black&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-c:v<span class="w"> </span>libvpx<span class="w"> </span>-b:v<span class="w"> </span>4M<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-crf<span class="w"> </span><span class="m">16</span><span class="w"> </span>-quality<span class="w"> </span>realtime<span class="w"> </span>-cpu-used<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-c:a<span class="w"> </span>libvorbis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-f<span class="w"> </span>webm<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>out.webm
+</pre></div>
+<p>The video filter is a bit obscure to read but it boils down to two
+actions:</p>
+<ol class="arabic simple">
+<li>Scale the video uniformly until either its width fits the width of
+the screen or its height fits the height of the screen</li>
+<li>Pad the scaled video with black so it is centered and the output size
+is the size of the screen</li>
+</ol>
+<p>However, this creates a new problem. What about subtitles ? If a video
+has a subtitles track, they are now ignored and you can't see them. The
+simplest solution is to just hardcode subtitles in the streamed video,
+whether the video uses a subtitles track or an external subtitles file.</p>
+<p>You might have been wondering, why bother with padding ? That's your
+answer: since we hardcode subtitles, we want them to take advantage of
+the padding so they cover the image as little as possible.</p>
+<p>We can call <tt class="docutils literal">ffmpeg</tt> from Python code with the <tt class="docutils literal">subprocess</tt> module,
+while directing its output to the standard output (with <tt class="docutils literal">-</tt>). It is
+good practice to use arrays to specify arguments rather than passing the
+command as a string with <tt class="docutils literal">shell=True</tt>. The latter can be a security
+hazard since it allows shell injection.</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+
+<span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;test.avi&#39;</span>
+<span class="n">startTime</span> <span class="o">=</span> <span class="s1">&#39;00:00:00&#39;</span>
+<span class="n">stopTime</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+<span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;scale=-1:min(ih*1920/iw\,1080)&#39;</span><span class="p">,</span> <span class="s1">&#39;pad=1920:1080:(1920-iw)/2:(1080-ih)/2:black&#39;</span><span class="p">]</span>
+
+<span class="n">srt</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.srt&#39;</span>
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">srt</span><span class="p">):</span>
+    <span class="n">filters</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;subtitles=&#39;</span><span class="o">+</span><span class="n">srt</span><span class="o">+</span><span class="s1">&#39;:charenc=CP1252&#39;</span><span class="p">]</span>
+<span class="k">elif</span> <span class="s1">&#39;codec_type=subtitle&#39;</span> <span class="ow">in</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s1">&#39;ffprobe&#39;</span><span class="p">,</span> <span class="s1">&#39;-v&#39;</span><span class="p">,</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="s1">&#39;-show_streams&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">]):</span>
+    <span class="n">filters</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;subtitles=&#39;</span><span class="o">+</span><span class="n">filename</span><span class="p">]</span>
+
+<span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ffmpeg&#39;</span><span class="p">]</span>
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">startTime</span><span class="p">):</span>
+    <span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-ss&#39;</span><span class="p">,</span> <span class="n">startTime</span><span class="p">]</span>
+<span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-i&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">]</span>
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stopTime</span><span class="p">):</span>
+    <span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-to&#39;</span><span class="p">,</span> <span class="n">stopTime</span><span class="p">]</span>
+<span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-vf&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filters</span><span class="p">)]</span>
+<span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-v&#39;</span><span class="p">,</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="s1">&#39;-copyts&#39;</span><span class="p">,</span> <span class="s1">&#39;-c:v&#39;</span><span class="p">,</span> <span class="s1">&#39;libvpx&#39;</span><span class="p">,</span> <span class="s1">&#39;-b:v&#39;</span><span class="p">,</span> <span class="s1">&#39;4M&#39;</span><span class="p">,</span> <span class="s1">&#39;-crf&#39;</span><span class="p">,</span> <span class="s1">&#39;16&#39;</span><span class="p">,</span> <span class="s1">&#39;-quality&#39;</span><span class="p">,</span> <span class="s1">&#39;realtime&#39;</span><span class="p">,</span> <span class="s1">&#39;-cpu-used&#39;</span><span class="p">,</span> <span class="s1">&#39;8&#39;</span><span class="p">,</span> <span class="s1">&#39;-c:a&#39;</span><span class="p">,</span> <span class="s1">&#39;libvorbis&#39;</span><span class="p">,</span> <span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="s1">&#39;webm&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">]</span>
+
+<span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+<p>The next step is to encapsulate this code in an HTTP server to stream
+the encoded WebM file over HTTP. In bonus, the special URL <tt class="docutils literal">screen</tt>
+will allow to stream the screen content!</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">urllib</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">from</span> <span class="nn">http.server</span> <span class="kn">import</span> <span class="n">BaseHTTPRequestHandler</span><span class="p">,</span> <span class="n">HTTPServer</span>
+<span class="kn">from</span> <span class="nn">socketserver</span> <span class="kn">import</span> <span class="n">ThreadingMixIn</span>
+
+<span class="n">defaultServerPort</span> <span class="o">=</span> <span class="mi">8888</span>
+<span class="n">directory</span> <span class="o">=</span> <span class="s1">&#39;/home/chapelierfou/videos&#39;</span> <span class="c1"># The directory where my videos are</span>
+
+<span class="n">screenDisplay</span> <span class="o">=</span> <span class="s1">&#39;:0.0&#39;</span>  <span class="c1"># X11 display</span>
+<span class="n">screenAudio</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span> <span class="c1"># Pulseaudio interface</span>
+
+<span class="k">class</span> <span class="nc">RequestHandler</span><span class="p">(</span><span class="n">BaseHTTPRequestHandler</span><span class="p">):</span>
+
+  <span class="c1"># GET</span>
+  <span class="k">def</span> <span class="nf">do_GET</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">unquote</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">qc</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;=&#39;</span> <span class="ow">in</span> <span class="n">qc</span> <span class="k">else</span> <span class="p">[</span><span class="n">qc</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">qc</span> <span class="ow">in</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&amp;&#39;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="o">!=</span> <span class="s1">&#39;/screen&#39;</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">directory</span> <span class="o">+</span> <span class="n">filename</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">send_response</span><span class="p">(</span><span class="mi">404</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">end_headers</span><span class="p">()</span>
+                <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_response</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_header</span><span class="p">(</span><span class="s1">&#39;Content-type&#39;</span><span class="p">,</span> <span class="s1">&#39;video/webm&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_headers</span><span class="p">()</span>
+
+        <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;scale=-1:min(ih*1920/iw\,1080)&#39;</span><span class="p">,</span> <span class="s1">&#39;pad=1920:1080:(1920-iw)/2:(1080-ih)/2:black&#39;</span><span class="p">]</span>
+
+        <span class="n">srt</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.srt&#39;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">srt</span><span class="p">):</span>
+            <span class="n">filters</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;subtitles=&#39;</span><span class="o">+</span><span class="n">srt</span><span class="o">+</span><span class="s1">&#39;:charenc=CP1252&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="s1">&#39;codec_type=subtitle&#39;</span> <span class="ow">in</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span><span class="s1">&#39;ffprobe&#39;</span><span class="p">,</span> <span class="s1">&#39;-v&#39;</span><span class="p">,</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="s1">&#39;-show_streams&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">]):</span>
+            <span class="n">filters</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;subtitles=&#39;</span><span class="o">+</span><span class="n">filename</span><span class="p">]</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ffmpeg&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;start&#39;</span> <span class="ow">in</span> <span class="n">query</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-ss&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="o">==</span> <span class="s2">&quot;/screen&quot;</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-avioflags&#39;</span><span class="p">,</span> <span class="s1">&#39;direct&#39;</span><span class="p">,</span> <span class="s1">&#39;-fflags&#39;</span><span class="p">,</span> <span class="s1">&#39;nobuffer&#39;</span><span class="p">]</span>
+            <span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-video_size&#39;</span><span class="p">,</span> <span class="s1">&#39;1920x1080&#39;</span><span class="p">,</span> <span class="s1">&#39;-framerate&#39;</span><span class="p">,</span> <span class="s1">&#39;25&#39;</span><span class="p">,</span> <span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="s1">&#39;x11grab&#39;</span><span class="p">,</span> <span class="s1">&#39;-i&#39;</span><span class="p">,</span> <span class="n">screenDisplay</span><span class="p">,</span> <span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="s1">&#39;pulse&#39;</span><span class="p">,</span> <span class="s1">&#39;-ac&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">,</span> <span class="s1">&#39;-i&#39;</span><span class="p">,</span> <span class="n">screenAudio</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-i&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;stop&#39;</span> <span class="ow">in</span> <span class="n">query</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-to&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">[</span><span class="s1">&#39;stop&#39;</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">filters</span><span class="p">):</span>
+            <span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-vf&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filters</span><span class="p">)]</span>
+        <span class="n">args</span><span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;-v&#39;</span><span class="p">,</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="s1">&#39;-copyts&#39;</span><span class="p">,</span> <span class="s1">&#39;-c:v&#39;</span><span class="p">,</span> <span class="s1">&#39;libvpx&#39;</span><span class="p">,</span> <span class="s1">&#39;-b:v&#39;</span><span class="p">,</span> <span class="s1">&#39;4M&#39;</span><span class="p">,</span> <span class="s1">&#39;-crf&#39;</span><span class="p">,</span> <span class="s1">&#39;10&#39;</span><span class="p">,</span> <span class="s1">&#39;-quality&#39;</span><span class="p">,</span> <span class="s1">&#39;realtime&#39;</span><span class="p">,</span> <span class="s1">&#39;-cpu-used&#39;</span><span class="p">,</span> <span class="s1">&#39;8&#39;</span><span class="p">,</span> <span class="s1">&#39;-c:a&#39;</span><span class="p">,</span> <span class="s1">&#39;libvorbis&#39;</span><span class="p">,</span> <span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="s1">&#39;webm&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">]</span>
+
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wfile</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span>
+
+<span class="k">class</span> <span class="nc">ThreadedHTTPServer</span><span class="p">(</span><span class="n">ThreadingMixIn</span><span class="p">,</span> <span class="n">HTTPServer</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+<span class="k">def</span> <span class="nf">run</span><span class="p">():</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+    <span class="n">serverPort</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">serverPort</span> <span class="o">=</span> <span class="n">defaultServerPort</span>
+
+  <span class="n">serverAddress</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;0.0.0.0&#39;</span><span class="p">,</span> <span class="n">defaultServerPort</span><span class="p">)</span>
+  <span class="n">httpd</span> <span class="o">=</span> <span class="n">ThreadedHTTPServer</span><span class="p">(</span><span class="n">serverAddress</span><span class="p">,</span> <span class="n">RequestHandler</span><span class="p">)</span>
+  <span class="n">httpd</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+
+
+<span class="n">run</span><span class="p">()</span>
+</pre></div>
+<p>Let's launch the server:</p>
+<pre class="code literal-block">
+$ ./server.py 8888 &amp;
+</pre>
+<p>Finally, we need a small command-line client with PyChromecast to start
+the video.</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python3</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">pychromecast</span>
+<span class="kn">import</span> <span class="nn">optparse</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="n">defaultRootUrl</span> <span class="o">=</span> <span class="s1">&#39;http://192.168.0.X:8888/&#39;</span> <span class="c1"># Address of the server</span>
+
+<span class="n">parser</span> <span class="o">=</span> <span class="n">optparse</span><span class="o">.</span><span class="n">OptionParser</span><span class="p">()</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;-d&quot;</span><span class="p">,</span> <span class="s2">&quot;--device&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;name&quot;</span><span class="p">,</span>
+                  <span class="n">help</span><span class="o">=</span><span class="s2">&quot;send to NAME&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;-t&quot;</span><span class="p">,</span> <span class="s2">&quot;--type&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;BUFFERED&quot;</span><span class="p">,</span>
+                  <span class="n">help</span><span class="o">=</span><span class="s2">&quot;set stream to TYPE&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;TYPE&quot;</span><span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;-l&quot;</span><span class="p">,</span> <span class="s2">&quot;--list&quot;</span><span class="p">,</span>
+                  <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;list&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">help</span><span class="o">=</span><span class="s2">&quot;list names&quot;</span><span class="p">)</span>
+
+<span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">list</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;devices&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">pychromecast</span><span class="o">.</span><span class="n">get_chromecasts_as_dict</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())}));</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+    <span class="n">cast</span> <span class="o">=</span> <span class="n">pychromecast</span><span class="o">.</span><span class="n">get_chromecast</span><span class="p">(</span><span class="n">friendly_name</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">name</span><span class="p">);</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">cast</span> <span class="o">=</span> <span class="n">pychromecast</span><span class="o">.</span><span class="n">get_chromecast</span><span class="p">();</span>
+
+<span class="n">cast</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="ow">not</span> <span class="n">cast</span><span class="o">.</span><span class="n">is_idle</span><span class="p">:</span>
+    <span class="n">cast</span><span class="o">.</span><span class="n">quit_app</span><span class="p">()</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="n">cast</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">friendly_name</span><span class="p">}))</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="s2">&quot;://&quot;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">defaultRootUrl</span><span class="o">+</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="n">cast</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">friendly_name</span><span class="p">,</span> <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">url</span><span class="p">}))</span>
+<span class="n">cast</span><span class="o">.</span><span class="n">play_media</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="s2">&quot;video/webm&quot;</span><span class="p">,</span> <span class="n">stream_type</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+<span class="n">cast</span><span class="o">.</span><span class="n">media_controller</span><span class="o">.</span><span class="n">enable_subtitle</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+<p>Now, let the magic happen:</p>
+<pre class="code literal-block">
+$ ./play.py Elephants_Dream_HD.avi
+</pre>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

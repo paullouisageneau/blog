@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+<h4 class="content-archive">Articles tagged with <span style="color:rgb(0,102,204)">Music</span>: </h4>
+
+<ul class="posts">
+<li><article class="post hentry">
+    <header>
+        <h2 class="post-title" >
+            <a href="https://blog.chapelierfou.org/playing-music-on-arduino.html" rel="bookmark" title="Permalink to Playing music on Arduino">Playing music on Arduino</a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-date">20/04/2017</span>
+            <span class="meta-prep"> | Category:</span>
+            <a class="category" href="https://blog.chapelierfou.org/category/robotics.html">Robotics</a>
+            <span class="meta-prep"> | Tags: </span>
+                <a class="tag" href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a>,                 <a class="tag" href="https://blog.chapelierfou.org/tag/music.html">Music</a>        </div>
+    </header>
+    <div class="summary"><p>Provided you connect a <a class="reference external" href="https://en.wikipedia.org/wiki/Piezoelectric_speaker">piezo
+speaker</a> to your
+<a class="reference external" href="https://www.arduino.cc/">Arduino</a> board, the <tt class="docutils literal">tone</tt> Arduino
+function allows to play tones given their frequencies. Let's use it to
+play entire melodies!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20170420_143033.jpg"><img alt="The Arduino board of my robotic teapot with a piezo sounder" src="https://blog.chapelierfou.org/images/IMG_20170420_143033-small.jpg" /></a>
+<p class="caption">The Arduino board of <a class="reference external" href="https://blog.chapelierfou.org/plasteac-a-dancing-teapot.html">my robotic teapot</a> with a piezo sounder</p>
+</div>
+<p>The melody encoding format I'll use is compact and pretty
+straightforward, but I admit it isn't the easiest one to read. The
+melody is represented as a <a class="reference external" href="https://en.wikipedia.org/wiki/Null-terminated_string">null-terminated
+string</a> of
+chars, in which each note is described by 3 consecutive characters:</p>
+<ol class="arabic simple">
+<li>The note duration in sixteenth notes as an hexadecimal digit between
+0 and F (0 has a special meaning and is interpreted as a whole note)</li>
+<li>The note name in English notation as an uppercase letter, or
+lowercase if sharp (R has a special meaning and indicates a rest)</li>
+<li>The octave number as a decimal digit, between 0 and 8 (for a rest,
+the value is ignored)</li>
+</ol>
+<p>So for instance, a quarter-note C from the 5th octave is <tt class="docutils literal">4C5</tt>, and a
+eighth-note D sharp from the 4th octave is <tt class="docutils literal">2d4</tt>.</p>
+<p>With this notation, the <a class="reference external" href="https://en.wikipedia.org/wiki/Korobeiniki">Tetris
+theme</a> is:</p>
+<pre class="code literal-block">
+4E52B42C54D52C52B44A42A42C54E52D52C56B42C54D54E54C54A42A42A42B42C56D52F54A52G52F56E52C54E52D52C54B42B42C54D54E54C54A44A44R0
+</pre>
+<p>In this example, a <a class="reference external" href="https://www.adafruit.com/product/160">piezo passive
+sounder</a> is connected on pin 3 …</p></div>
+    <div class="readmore"><a href="https://blog.chapelierfou.org/playing-music-on-arduino.html">Read more...</a></div>
+    <hr>
+</article></li>
+</ul>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapelier Fou</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Chapelier Fou &ndash; Asocial networks">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="author" content="Paul-Louis Ageneau">
+    <meta property="article:section" content="Hardware">
+    <meta property="article:published_time" content="2019-10-27">
+
+    <!-- Style -->
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/style.css' type="text/css">
+    <link rel="stylesheet" href='https://blog.chapelierfou.org/theme/css/pygments-highlight.css' type="text/css">
+
+    <!-- Icon -->
+
+    <!-- Feed -->
+    <link href="https://blog.chapelierfou.org/feeds/atom.xml" type="application/atom+xml" rel="alternate" title="Chapelier Fou Atom Feed">
+    <link href="https://blog.chapelierfou.org/feeds/rss.xml" type="application/rss+xml" rel="alternate" title="Chapelier Fou RSS Feed">
+</head>
+<body id="index" class="blog">
+<div id="container" class="hfeed">
+    <header id="header" >
+        <div id="logo">
+            <h1><a href="https://blog.chapelierfou.org"><img src="https://blog.chapelierfou.org/theme/image/logo.png" alt="Chapelier Fou"></a></h1>
+        </div>
+        <nav id="menu" class="main-nav"><ul class="menu">
+        </ul></nav>
+    </header>
+    <section id="wrapper" class="clearfix">
+        <section id="content">
+
+<section id="post" class="post hentry">
+    <header>
+    <h2 class="post-title" >A High-Tech Minitel</h2>
+    
+    <div class="post-meta">
+        <span class="post-date">27/10/2019</span>
+        <span class="meta-prep"> | Category:</span>
+        <a class="category" href="https://blog.chapelierfou.org/category/hardware.html">Hardware</a>
+        <span class="meta-prep"> | Tags: </span>
+            <a class="tag" href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a>,             <a class="tag" href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a>    </div>
+    </header>
+    <div class="post-entry">
+        <p>This article is the continuation of my Minitel series: <a class="reference external" href="https://blog.chapelierfou.org/a-minitel-as-a-linux-terminal.html">a Minitel as a Linux terminal</a>, and <a class="reference external" href="https://blog.chapelierfou.org/a-minitel-2.0.html">a Minitel 2.0</a>.</p>
+<p>It's rather easy to remove legacy electronics and unmount the cathodic tube from the Minitel to replace them with a Raspberry Pi and a flat screen. However, the difficult part would be adapting the Minitel's proprietary keyboard.</p>
+<p>Therefore, in this article, we will first make a generic USB keyboard controller for the Minitel 1B out of an Arduino board. We'll use an <a class="reference external" href="https://www.sparkfun.com/products/12640">Arduino Pro Micro</a>. It is roughly equivalent to the Pro Mini, except it has an on-board USB transceiver, which will allow us to configure it as a USB Keyboard. Then, we'll fit a 8-inch LCD panel to replace the old CRT. I chose an <a class="reference external" href="https://www.ebay.com/sch/i.html?_nkw=HE080IA-01D">Innolux HE080IA-01D</a> panel with driver board. Its dimensions and 1024x768 resolution make it a perfect candidate for our use case here.</p>
+<p>The Minitel's keyboard is a simple matrix one. Key presses close circuits, and by continuously scanning the matrix, the controller can deduce which keys are pressed. Sadly, the matrix is non-standard, so we have to retro-engineer it...</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_211544.jpg"><img alt="The keyboard contact board extracted from a Minitel" src="https://blog.chapelierfou.org/images/IMG_20190712_211544-small.jpg" /></a>
+<p class="caption">The keyboard contact board extracted from a Minitel</p>
+</div>
+<p>The easiest way is to sacrifice another Minitel, dismount the plastic-riveted metal enclosure of the keyboard, and retrieve the contact board from inside.</p>
+<p>Guessing the matrix from the contact board is just like a labyrinth game, only a rather boring one. The tricky part is that I didn't even know beforehand which tracks of the ribbon cable corresponded to rows and columns. If you number tracks from the left starting at 0, it turns out the two groups are actually (1, 6, 7, 8, 9, 10, 11, 16) and (2, 3, 4, 5, 12, 13, 14, 15). I mean, why not?</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_211757.jpg"><img alt="The contact board placed on top of the keyboard to highlight the mapping" src="https://blog.chapelierfou.org/images/IMG_20190712_211757-small.jpg" /></a>
+<p class="caption">The contact board placed on top of the keyboard to highlight the mapping</p>
+</div>
+<p>In the end, we get the following mapping (from left to right, starting at 0):</p>
+<div class="highlight"><pre><span></span>*     1       6       7       8       9       10      11      16
+   +------------------------------------------------------------------
+2  |  Up      T       G       .       B       Guide   Fnct    Conn.
+3  |  Corr.   E       D       Esc     C       Z       S       X
+4  |  Ann.    R       F       ,       V       A       Q       W
+5  |  Down    Y       H       &#39;       N       Somm.   Ctrl    Space
+12 |  Shift   ;       *       Suite   0       J       #       U
+13 |  Left    -       7       Retour  8       K       9       I
+14 |  Right   :       4       Envoi   5       L       6       O
+15 |  Entrée  ?       1       Repet.  2       M       3       P
+</pre></div>
+<p>Track 0 is only shielding that we'll keep to the ground. In what follows, I will use (1, 6, 7, 8, 9, 10, 11, 16) as outputs and (2, 3, 4, 5, 12, 13, 14, 15) as inputs.</p>
+<p>To connect the ribbon cable to the Arduino, I unsoldered the original connector from the previously sacrificed Minitel's main board and re-soldered in on an ad-hoc board.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_212234.jpg"><img alt="The keyboard ribbon cable adapted to the Arduino" src="https://blog.chapelierfou.org/images/IMG_20190712_212234-small.jpg" /></a>
+<p class="caption">The keyboard ribbon cable adapted to the Arduino</p>
+</div>
+<p>Key states will be scanned by pulling inputs high with their internal resistors, setting one output low while the others are high, then checking if one of the inputs is pulled down as a result. If an input is low, then the key at the corresponding intersection in the matrix is pressed, else, it's not. In a nutshell, we scan outputs while listening on inputs.</p>
+<p>In this configuration, logical outputs are actually current sinks, so current must only flow to an output and not from it (this could happen when multiple keys are pressed), therefore we need one diode on each output line.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_212712.jpg"><img alt="The custom-made keyboard controller connected to the Raspberry Pi" src="https://blog.chapelierfou.org/images/IMG_20190712_212712-small.jpg" /></a>
+<p class="caption">The custom-made keyboard controller connected to the Raspberry Pi</p>
+</div>
+<p>It would look silly to hook the USB connector to the Raspberry Pi from outside, so I chose to solder the wires directly under it. It still condemns a USB port, though.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_212856.jpg"><img alt="The USB connector soldered directly under the Raspberry Pi" src="https://blog.chapelierfou.org/images/IMG_20190712_212856-small.jpg" /></a>
+<p class="caption">The USB connector soldered directly under the Raspberry Pi</p>
+</div>
+<p>Then of course we need to program the Arduino to act as a keyboard controller. We use the <a class="reference external" href="https://www.arduino.cc/reference/en/language/functions/usb/keyboard/">Keyboard</a> library to mimic a USB keyboard and send keystrokes. It is a bit more complex than explained previously, because we also need to take into account modifier keys (Shift, Ctrl, and Fnct), meaning there are actually four matrixes.</p>
+<div class="highlight"><pre><span></span><span class="cm">/*</span>
+<span class="cm"> * Minitel 1B keyboard controller</span>
+<span class="cm"> * Copyright (c) 2019 by Paul-Louis Ageneau</span>
+<span class="cm"> *</span>
+<span class="cm"> * This program is free software: you can redistribute it and/or modify</span>
+<span class="cm"> * it under the terms of the GNU General Public License as published by</span>
+<span class="cm"> * the Free Software Foundation, either version 3 of the License, or</span>
+<span class="cm"> * (at your option) any later version.</span>
+<span class="cm"> *</span>
+<span class="cm"> * This program is distributed in the hope that it will be useful,</span>
+<span class="cm"> * but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="cm"> * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="cm"> * GNU General Public License for more details.</span>
+<span class="cm"> *</span>
+<span class="cm"> * You should have received a copy of the GNU General Public License</span>
+<span class="cm"> * along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="cm"> */</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;Keyboard.h&gt;</span>
+
+<span class="cp">#define KEY_SHIFT KEY_RIGHT_SHIFT</span>
+<span class="cp">#define KEY_CTRL  KEY_RIGHT_CTRL</span>
+
+<span class="cp">#define MINITEL_SOMM    0xF0</span>
+<span class="cp">#define MINITEL_ANNUL   0xF1</span>
+<span class="cp">#define MINITEL_RETOUR  0xF2</span>
+<span class="cp">#define MINITEL_REPET   0xF3</span>
+<span class="cp">#define MINITEL_GUIDE   0xF4</span>
+<span class="cp">#define MINITEL_CORREC  0xF5</span>
+<span class="cp">#define MINITEL_SUITE   0xF6</span>
+<span class="cp">#define MINITEL_ENVOI   0xF7</span>
+<span class="cp">#define MINITEL_CONN    0xF8</span>
+<span class="cp">#define MINITEL_FNCT    0xF9</span>
+
+<span class="c1">// Keyboard ribbon cable is numbered 0|1|2 3 4 5|6 7 8 9 A B|C D E F|G (0 to ground)</span>
+<span class="c1">// It&#39;s connected correspondingly to pins GND|2|3 4 5 6|7 8 9 10 16 14|15 18 19 20|21</span>
+
+<span class="c1">// Pins mapping</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">pinCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">scanPins</span><span class="p">[</span><span class="n">pinCount</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span><span class="w"> </span><span class="mi">14</span><span class="p">,</span><span class="w"> </span><span class="mi">21</span><span class="w"> </span><span class="p">};</span><span class="w">   </span><span class="c1">// outputs</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">listenPins</span><span class="p">[</span><span class="n">pinCount</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span><span class="w"> </span><span class="mi">18</span><span class="p">,</span><span class="w"> </span><span class="mi">19</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="w"> </span><span class="p">};</span><span class="w"> </span><span class="c1">// inputs</span>
+
+<span class="c1">// Keyboard matrix</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">keyCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pinCount</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">pinCount</span><span class="p">;</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">matrix</span><span class="p">[</span><span class="n">keyCount</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// 1                6    7    8               9    A              B             G</span>
+<span class="w">   </span><span class="n">KEY_UP_ARROW</span><span class="p">,</span><span class="w">    </span><span class="sc">&#39;t&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;g&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;.&#39;</span><span class="p">,</span><span class="w">            </span><span class="sc">&#39;b&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MINITEL_GUIDE</span><span class="p">,</span><span class="w"> </span><span class="n">MINITEL_FNCT</span><span class="p">,</span><span class="w"> </span><span class="n">MINITEL_CONN</span><span class="p">,</span><span class="w"> </span><span class="c1">// 2</span>
+<span class="w">   </span><span class="n">MINITEL_CORREC</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;e&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;d&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">KEY_ESC</span><span class="p">,</span><span class="w">        </span><span class="sc">&#39;c&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;z&#39;</span><span class="p">,</span><span class="w">           </span><span class="sc">&#39;s&#39;</span><span class="p">,</span><span class="w">          </span><span class="sc">&#39;x&#39;</span><span class="p">,</span><span class="w">          </span><span class="c1">// 3</span>
+<span class="w">   </span><span class="n">MINITEL_ANNUL</span><span class="p">,</span><span class="w">   </span><span class="sc">&#39;r&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;f&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;,&#39;</span><span class="p">,</span><span class="w">            </span><span class="sc">&#39;v&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;a&#39;</span><span class="p">,</span><span class="w">           </span><span class="sc">&#39;q&#39;</span><span class="p">,</span><span class="w">          </span><span class="sc">&#39;w&#39;</span><span class="p">,</span><span class="w">          </span><span class="c1">// 4</span>
+<span class="w">   </span><span class="n">KEY_DOWN_ARROW</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;y&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;h&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;\&#39;&#39;</span><span class="p">,</span><span class="w">           </span><span class="sc">&#39;n&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MINITEL_SOMM</span><span class="p">,</span><span class="w">  </span><span class="n">KEY_CTRL</span><span class="p">,</span><span class="w">     </span><span class="sc">&#39; &#39;</span><span class="p">,</span><span class="w">          </span><span class="c1">// 5</span>
+<span class="w">   </span><span class="n">KEY_SHIFT</span><span class="p">,</span><span class="w">       </span><span class="sc">&#39;;&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;*&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MINITEL_SUITE</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;0&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;u&#39;</span><span class="p">,</span><span class="w">           </span><span class="sc">&#39;j&#39;</span><span class="p">,</span><span class="w">          </span><span class="sc">&#39;#&#39;</span><span class="p">,</span><span class="w">          </span><span class="c1">// C</span>
+<span class="w">   </span><span class="n">KEY_LEFT_ARROW</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;7&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MINITEL_RETOUR</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;8&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;i&#39;</span><span class="p">,</span><span class="w">           </span><span class="sc">&#39;k&#39;</span><span class="p">,</span><span class="w">          </span><span class="sc">&#39;9&#39;</span><span class="p">,</span><span class="w">          </span><span class="c1">// D</span>
+<span class="w">   </span><span class="n">KEY_RIGHT_ARROW</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;:&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;4&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MINITEL_ENVOI</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;5&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;o&#39;</span><span class="p">,</span><span class="w">           </span><span class="sc">&#39;l&#39;</span><span class="p">,</span><span class="w">          </span><span class="sc">&#39;6&#39;</span><span class="p">,</span><span class="w">          </span><span class="c1">// E</span>
+<span class="w">   </span><span class="n">KEY_RETURN</span><span class="p">,</span><span class="w">      </span><span class="sc">&#39;?&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;1&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MINITEL_REPET</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;2&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;p&#39;</span><span class="p">,</span><span class="w">           </span><span class="sc">&#39;m&#39;</span><span class="p">,</span><span class="w">          </span><span class="sc">&#39;3&#39;</span><span class="p">,</span><span class="w">          </span><span class="c1">// F</span>
+<span class="p">};</span>
+
+<span class="cp">#define INDEX_SHIFT 4 * pinCount</span>
+<span class="cp">#define INDEX_CTRL  3 * pinCount + 6</span>
+<span class="cp">#define INDEX_FNCT  6</span>
+
+<span class="c1">// Partial keyboard matrix for SHIFT key</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">matrixModShift</span><span class="p">[</span><span class="n">keyCount</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// 1      6     7     8     9     A     B     G</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">     </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="sc">&#39;&gt;&#39;</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="sc">&#39;_&#39;</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// 2</span>
+<span class="w">   </span><span class="sc">&#39;~&#39;</span><span class="p">,</span><span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// 3</span>
+<span class="w">   </span><span class="sc">&#39;\\&#39;</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="sc">&#39;&lt;&#39;</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// 4</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">     </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="sc">&#39;@&#39;</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="sc">&#39;^&#39;</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// 5</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">     </span><span class="sc">&#39;+&#39;</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;[&#39;</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;`&#39;</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;|&#39;</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="sc">&#39;]&#39;</span><span class="p">,</span><span class="w">  </span><span class="c1">// C</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">     </span><span class="sc">&#39;=&#39;</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;\&#39;&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;\&#39;&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;(&#39;</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="sc">&#39;)&#39;</span><span class="p">,</span><span class="w">  </span><span class="c1">// D</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">     </span><span class="sc">&#39;*&#39;</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;$&#39;</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;}&#39;</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;%&#39;</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="sc">&#39;&amp;&#39;</span><span class="p">,</span><span class="w">  </span><span class="c1">// E</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">     </span><span class="sc">&#39;/&#39;</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;!&#39;</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;{&#39;</span><span class="p">,</span><span class="w">  </span><span class="sc">&#39;&quot;&#39;</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="sc">&#39;#&#39;</span><span class="p">,</span><span class="w">  </span><span class="c1">// F</span>
+<span class="p">};</span>
+
+<span class="c1">// Partial keyboard matrix for CTRL key</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">matrixModCtrl</span><span class="p">[</span><span class="n">keyCount</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// 1              6     7               8     9     A         B     G</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">              </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">        </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// 2</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">              </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">        </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// 3</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">              </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">        </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// 4</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="n">KEY_BACKSPACE</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">        </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// 5</span>
+<span class="w">   </span><span class="n">KEY_CAPS_LOCK</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">              </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">        </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// C</span>
+<span class="w">   </span><span class="n">KEY_BACKSPACE</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">              </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="n">KEY_TAB</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// D</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">              </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">        </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// E</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">              </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">        </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="c1">// F</span>
+<span class="p">};</span>
+
+<span class="c1">// Partial keyboard matrix for FNCT key</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">matrixModFnct</span><span class="p">[</span><span class="n">keyCount</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// 1              6     7        8    9        A     B     G</span>
+<span class="w">   </span><span class="n">KEY_PAGE_UP</span><span class="p">,</span><span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">       </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">       </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">         </span><span class="c1">// 2</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">       </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">       </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">         </span><span class="c1">// 3</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">       </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">       </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">         </span><span class="c1">// 4</span>
+<span class="w">   </span><span class="n">KEY_PAGE_DOWN</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">       </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">       </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">         </span><span class="c1">// 5</span>
+<span class="w">   </span><span class="n">KEY_CAPS_LOCK</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">       </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="n">KEY_F10</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="n">KEY_F11</span><span class="p">,</span><span class="w">   </span><span class="c1">// C</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="n">KEY_F7</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="n">KEY_F8</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="n">KEY_F9</span><span class="p">,</span><span class="w">    </span><span class="c1">// D</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="n">KEY_F4</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="n">KEY_F5</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="n">KEY_F6</span><span class="p">,</span><span class="w">    </span><span class="c1">// E</span>
+<span class="w">   </span><span class="mi">0</span><span class="p">,</span><span class="w">             </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="n">KEY_F1</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">   </span><span class="n">KEY_F2</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="mi">0</span><span class="p">,</span><span class="w">    </span><span class="n">KEY_F3</span><span class="p">,</span><span class="w">    </span><span class="c1">// F</span>
+<span class="p">};</span>
+
+<span class="c1">// Press state of keys</span>
+<span class="kt">bool</span><span class="w"> </span><span class="n">state</span><span class="p">[</span><span class="n">keyCount</span><span class="p">];</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">event</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">state</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">Serial</span><span class="p">.</span><span class="n">print</span><span class="p">(</span><span class="n">state</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">&quot;D&quot;</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="s">&quot;U&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">HEX</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Convert Minitel-specific keys</span>
+<span class="w">  </span><span class="k">switch</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">MINITEL_SOMM</span><span class="p">:</span><span class="w">   </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KEY_HOME</span><span class="p">;</span><span class="w">      </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">MINITEL_ANNUL</span><span class="p">:</span><span class="w">  </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KEY_END</span><span class="p">;</span><span class="w">       </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">MINITEL_RETOUR</span><span class="p">:</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KEY_BACKSPACE</span><span class="p">;</span><span class="w"> </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">MINITEL_REPET</span><span class="p">:</span><span class="w">  </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KEY_INSERT</span><span class="p">;</span><span class="w">    </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">MINITEL_GUIDE</span><span class="p">:</span><span class="w">  </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KEY_RIGHT_GUI</span><span class="p">;</span><span class="w"> </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">MINITEL_CORREC</span><span class="p">:</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KEY_DELETE</span><span class="p">;</span><span class="w">    </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">MINITEL_SUITE</span><span class="p">:</span><span class="w">  </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KEY_TAB</span><span class="p">;</span><span class="w">       </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">MINITEL_ENVOI</span><span class="p">:</span><span class="w">  </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KEY_RETURN</span><span class="p">;</span><span class="w">    </span><span class="k">break</span><span class="p">;</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="no">MINITEL_CONN</span><span class="p">:</span><span class="w">   </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KEY_F12</span><span class="p">;</span><span class="w">       </span><span class="k">break</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">if</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="w"> </span><span class="n">Keyboard</span><span class="p">.</span><span class="n">press</span><span class="p">(</span><span class="n">key</span><span class="p">);</span>
+<span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="n">Keyboard</span><span class="p">.</span><span class="n">release</span><span class="p">(</span><span class="n">key</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">Serial</span><span class="p">.</span><span class="n">begin</span><span class="p">(</span><span class="mi">9600</span><span class="p">);</span>
+<span class="w">  </span><span class="n">Keyboard</span><span class="p">.</span><span class="n">begin</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// Initialize key states</span>
+<span class="w">  </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">keyCount</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">state</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Set outputs high</span>
+<span class="w">  </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">pinCount</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">scanPins</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">OUTPUT</span><span class="p">);</span>
+<span class="w">    </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">scanPins</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">HIGH</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Pull inputs up</span>
+<span class="w">  </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">pinCount</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">pinMode</span><span class="p">(</span><span class="n">listenPins</span><span class="p">[</span><span class="n">j</span><span class="p">],</span><span class="w"> </span><span class="n">INPUT_PULLUP</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Scan the keyboard matrix</span>
+
+<span class="w">  </span><span class="c1">// Loop on outputs</span>
+<span class="w">  </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">pinCount</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">    </span><span class="c1">// Set output i to low</span>
+<span class="w">    </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">scanPins</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">LOW</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Loop on inputs</span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">pinCount</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">      </span><span class="c1">// Key k is pressed if input j is low</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">j</span><span class="o">*</span><span class="n">pinCount</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">oldState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state</span><span class="p">[</span><span class="n">k</span><span class="p">];</span>
+<span class="w">      </span><span class="n">state</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">digitalRead</span><span class="p">(</span><span class="n">listenPins</span><span class="p">[</span><span class="n">j</span><span class="p">])</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">LOW</span><span class="p">);</span>
+
+<span class="w">      </span><span class="c1">// Handle key state change</span>
+<span class="w">      </span><span class="k">if</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">oldState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="n">INDEX_FNCT</span><span class="p">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">matrixModFnct</span><span class="p">[</span><span class="n">k</span><span class="p">])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">event</span><span class="p">(</span><span class="n">matrixModFnct</span><span class="p">[</span><span class="n">k</span><span class="p">],</span><span class="w"> </span><span class="n">state</span><span class="p">[</span><span class="n">k</span><span class="p">]);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="n">INDEX_CTRL</span><span class="p">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">matrixModCtrl</span><span class="p">[</span><span class="n">k</span><span class="p">])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">event</span><span class="p">(</span><span class="n">KEY_CTRL</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
+<span class="w">          </span><span class="n">event</span><span class="p">(</span><span class="n">matrixModCtrl</span><span class="p">[</span><span class="n">k</span><span class="p">],</span><span class="w"> </span><span class="n">state</span><span class="p">[</span><span class="n">k</span><span class="p">]);</span>
+<span class="w">          </span><span class="n">event</span><span class="p">(</span><span class="n">KEY_CTRL</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="n">INDEX_SHIFT</span><span class="p">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">matrixModShift</span><span class="p">[</span><span class="n">k</span><span class="p">])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">matrixModShift</span><span class="p">[</span><span class="n">k</span><span class="p">];</span>
+<span class="w">          </span><span class="n">event</span><span class="p">(</span><span class="n">KEY_SHIFT</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
+<span class="w">          </span><span class="n">event</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">state</span><span class="p">[</span><span class="n">k</span><span class="p">]);</span>
+<span class="w">          </span><span class="n">event</span><span class="p">(</span><span class="n">KEY_SHIFT</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">event</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="n">k</span><span class="p">],</span><span class="w"> </span><span class="n">state</span><span class="p">[</span><span class="n">k</span><span class="p">]);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Reset output i to high</span>
+<span class="w">    </span><span class="n">digitalWrite</span><span class="p">(</span><span class="n">scanPins</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">HIGH</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>You may have noticed that the Raspberry Pi is fitted in the same custom rear panel as in <a class="reference external" href="https://blog.chapelierfou.org/a-minitel-2.0.html">my previous article</a>.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/minitel_models.png"><img alt="Replacement for the rear panel holding the Raspberry Pi" src="https://blog.chapelierfou.org/images/minitel_models.png" /></a>
+<p class="caption">Replacement for the rear panel holding the Raspberry Pi</p>
+</div>
+<p>To attach the LCD screen, we'll take advantage of the former anchoring points of the CRT screen, which have been previously sawn. I printed specifically-designed holding pieces and screwed them into the holes in the frame so they keep the screen in place. Since the former screen was not flat, it leaves holes on the sides that I filled with black masking tape.</p>
+<p>STL models with OpenSCAD sources are <a class="reference external" href="https://blog.chapelierfou.org/files/mntl_rpi_screen_models.zip">available here</a> (under GPLv3).</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_213154.jpg"><img alt="The LCD screen attached on the Minitel frame" src="https://blog.chapelierfou.org/images/IMG_20190712_213154-small.jpg" /></a>
+<p class="caption">The LCD screen attached on the Minitel frame</p>
+</div>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_213304.jpg"><img alt="Close-up of a screen holder screwed to the frame" src="https://blog.chapelierfou.org/images/IMG_20190712_213304-small.jpg" /></a>
+<p class="caption">Close-up of a screen holder screwed to the frame</p>
+</div>
+<p>I added a limit switch to make the on/off push button work again. The switch will be connected to the Pi's GPIO, and will allow to turn the screen and the LED on and off.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_213244.jpg"><img alt="New switch for the on/off push button" src="https://blog.chapelierfou.org/images/IMG_20190712_213244-small.jpg" /></a>
+<p class="caption">New switch for the on/off push button</p>
+</div>
+<p>I replaced the power plug with a 12V socket, feeding the LCD driver board directly and the Raspberry Pi through a <a class="reference external" href="https://www.ebay.com/sch/i.html?_nkw=5V+UBEC">5V UBEC</a>. Of course the LCD board is also connected to the Pi's HDMI output with a short cable. Note the red LED, powered via the GPIO, which will replace the Minitel power-on LED next to the on/off button.</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_214438.jpg"><img alt="Everything connected together" src="https://blog.chapelierfou.org/images/IMG_20190712_214438-small.jpg" /></a>
+<p class="caption">Everything connected together</p>
+</div>
+<p>Eventually, the last step is to put everything in the Minitel box and close it. Then we can connect the power via a 12V adapter, let the Raspberry Pi boot on Raspbian, and... it works!</p>
+<div class="figure">
+<a class="reference external image-reference" href="https://blog.chapelierfou.org/images/IMG_20190712_221510.jpg"><img alt="It works!" src="https://blog.chapelierfou.org/images/IMG_20190712_221510-small.jpg" /></a>
+<p class="caption">It works!</p>
+</div>
+<p>The final step is to install a custom Python script to handle the power button and LED.</p>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">RPi.GPIO</span> <span class="k">as</span> <span class="nn">GPIO</span>
+
+<span class="n">PIN_LED</span> <span class="o">=</span> <span class="mi">7</span>
+<span class="n">PIN_BUTTON</span> <span class="o">=</span> <span class="mi">11</span>
+<span class="n">BUTTON_DELAY</span> <span class="o">=</span> <span class="mf">0.05</span>
+
+<span class="c1"># Setup GPIO</span>
+<span class="n">GPIO</span><span class="o">.</span><span class="n">setwarnings</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">GPIO</span><span class="o">.</span><span class="n">setmode</span><span class="p">(</span><span class="n">GPIO</span><span class="o">.</span><span class="n">BOARD</span><span class="p">)</span>
+<span class="n">GPIO</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">PIN_LED</span><span class="p">,</span> <span class="n">GPIO</span><span class="o">.</span><span class="n">OUT</span><span class="p">)</span>
+<span class="n">GPIO</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">PIN_BUTTON</span><span class="p">,</span> <span class="n">GPIO</span><span class="o">.</span><span class="n">IN</span><span class="p">,</span> <span class="n">pull_up_down</span><span class="o">=</span><span class="n">GPIO</span><span class="o">.</span><span class="n">PUD_UP</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">wait_button</span><span class="p">():</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">BUTTON_DELAY</span><span class="p">)</span>
+    <span class="n">GPIO</span><span class="o">.</span><span class="n">wait_for_edge</span><span class="p">(</span><span class="n">PIN_BUTTON</span><span class="p">,</span> <span class="n">GPIO</span><span class="o">.</span><span class="n">FALLING</span><span class="p">)</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">BUTTON_DELAY</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">GPIO</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">PIN_BUTTON</span><span class="p">)</span> <span class="o">==</span> <span class="n">GPIO</span><span class="o">.</span><span class="n">LOW</span><span class="p">:</span>
+        <span class="n">GPIO</span><span class="o">.</span><span class="n">wait_for_edge</span><span class="p">(</span><span class="n">PIN_BUTTON</span><span class="p">,</span> <span class="n">GPIO</span><span class="o">.</span><span class="n">RISING</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">set_led</span><span class="p">(</span><span class="n">on</span><span class="p">):</span>
+    <span class="n">GPIO</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">PIN_LED</span><span class="p">,</span> <span class="n">GPIO</span><span class="o">.</span><span class="n">HIGH</span> <span class="k">if</span> <span class="n">on</span> <span class="k">else</span> <span class="n">GPIO</span><span class="o">.</span><span class="n">LOW</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">set_display_power</span><span class="p">(</span><span class="n">on</span><span class="p">):</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s2">&quot;vcgencmd&quot;</span><span class="p">,</span> <span class="s2">&quot;display_power&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">on</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)])</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">state</span>
+        <span class="n">set_display_power</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="n">set_led</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="n">wait_button</span><span class="p">()</span>
+</pre></div>
+<p>We only need to run it at startup, for instance via a <tt class="docutils literal">crontab</tt> <tt class="docutils literal">&#64;reboot</tt> line, to make a first press on the power button turn off both the display and the LED, and a second one turn them both on again. It mimics the original behavior well enough!</p>
+
+    </div>
+</section>
+        </section>
+        <section id="widgets">
+            <section id="widget-category" class="widget-wrapper">
+                <div class="widget-title">
+                    Categories
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/category/hardware.html" >Hardware </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/networks.html" >Networks </a></li>
+                        <li><a href="https://blog.chapelierfou.org/category/robotics.html" >Robotics </a></li>
+                </ul>
+            </section>
+
+            <section id="widget-tags" class="widget-wrapper">
+                <div class="widget-title">
+                    Tags
+                </div>
+                <div>
+                <ul>
+                       <li><a href="https://blog.chapelierfou.org/tag/raspberry-pi.html">Raspberry Pi</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/furby.html">Furby</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vintage.html">Vintage</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/arduino.html">Arduino</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/3d-printing.html">3D Printing</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/minitel.html">Minitel</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/networking.html">Networking</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/webrtc.html">WebRTC</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/video.html">Video</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/music.html">Music</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/iptables.html">iptables</a></li>
+                       <li><a href="https://blog.chapelierfou.org/tag/vpn.html">VPN</a></li>
+                </ul>
+                </div>
+            </section>
+            <section id="widget-feeds" class="widget-wrapper">
+                <div class="widget-title">
+                    Feeds
+                </div>
+                <ul>
+                        <li><a href="https://blog.chapelierfou.org/feeds/atom.xml">Atom</a></li>
+                        <li><a href="https://blog.chapelierfou.org/feeds/rss.xml">RSS</a></li>
+                </ul>
+            </section>
+            <section id="widget-links" class="widget-wrapper">
+                <div class="widget-title">
+                    Links
+                </div>
+                <ul>
+                        <li><a href="https://ageneau.org/paul-louis/">Personal page</a></li>
+                        <li><a href="https://github.com/paullouisageneau/">GitHub page</a></li>
+                        <li><a href="https://twitter.com/plajno">Twitter @plajno</a></li>
+                        <li><a href="http://nc233.com/">NC233</a></li>
+                </ul>
+            </section>
+            <div class="sponsor">
+                <iframe src="https://github.com/sponsors/paullouisageneau/button" title="Sponsor paullouisageneau" height="35" width="116" style="border: 0;"></iframe>
+                <div class="liberapay"><a href="https://liberapay.com/paullouisageneau/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></div>
+                <div class="ko-fi"><a href='https://ko-fi.com/A0A8CIDHU' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></div>
+            </div>
+            <div class="copyright" >
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" rel="license">
+                    <img src="https://blog.chapelierfou.org/theme/image/by-nc-sa.png" alt="License CC BY-NC-SA 3.0">
+                </a>
+            </div>
+        </section>
+    </section>
+    <footer id="footer" class="clearfix"><section class="footer-wrapper">
+        <div class="powered">
+            Powered by <a href="https://getpelican.com/">Pelican</a>
+        </div>
+    </section></footer>
+</div>
+<!-- Piwik -->
+<script type="text/javascript">
+  var _paq = _paq || [];
+  _paq.push(["setCookieDomain", "*.chapelierfou.org"]);
+  _paq.push(["setDomains", ["*.chapelierfou.org"]]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//ageneau.org/pw/";
+    _paq.push(['setTrackerUrl', u+'pw.php']);
+    _paq.push(['setSiteId', 1]);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.defer=true; g.src=u+'pw.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="//ageneau.org/pw/pw.php?idsite=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Piwik Code -->
+</body>
+</html>
